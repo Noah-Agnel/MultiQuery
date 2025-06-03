@@ -1,0 +1,95 @@
+services:
+  # Spark and Iceberg services
+  spark-iceberg:
+    image         : tabulario/spark-iceberg
+    container_name: spark-iceberg
+    build         : spark/
+    networks:
+      iceberg_net:
+    depends_on:
+      - rest
+      - minio
+    volumes:
+      - ./warehouse:/home/iceberg/warehouse
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=20_mmatching_25
+      - AWS_REGION=us-east-1
+    ports:
+      - 4040:4040  # Spark UI
+      - 7077:7077  # Spark Master
+
+  # Zeppelin service
+  zeppelin:
+    image          : apache/zeppelin:0.10.1
+    container_name : zeppelin
+    networks:
+      iceberg_net:
+    depends_on:
+      - spark-iceberg
+    environment:
+      - SPARK_MASTER=spark://spark-iceberg:7077
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=20_mmatching_25
+      - AWS_REGION=us-east-1
+    ports:
+      - 8080:8080  # Zeppelin Web UI
+    volumes:
+      - ./zeppelin-notebooks:/opt/zeppelin/notebook
+      - ./warehouse:/opt/warehouse
+  
+  # Rest service
+  rest:
+    image         : apache/iceberg-rest-fixture
+    container_name: iceberg-rest
+    networks:
+      iceberg_net:
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=20_mmatching_25
+      - AWS_REGION=us-east-1
+      - CATALOG_WAREHOUSE=s3://warehouse/
+      - CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO
+      - CATALOG_S3_ENDPOINT=http://minio:9000
+  
+  # Minio service
+  minio:
+    image         : minio/minio
+    container_name: minio
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=20_mmatching_25
+      - MINIO_DOMAIN=minio
+    networks:
+      iceberg_net:
+        aliases:
+          - warehouse.minio
+    ports:
+      - 9001:9001  # MinIO Console (optional)
+      - 9000:9000
+    command: ["server", "/data", "--console-address", ":9001"]
+  
+  # Minio client service
+  mc:
+    depends_on:
+      - minio
+    image         : minio/mc
+    container_name: mc
+    networks:
+      iceberg_net:
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=20_mmatching_25
+      - AWS_REGION=us-east-1
+    entrypoint: |
+      /bin/sh -c "
+      until (/usr/bin/mc config host add minio http://minio:9000 admin 20_mmatching_25) do echo '...waiting...' && sleep 1; done;
+      /usr/bin/mc rm -r --force minio/warehouse;
+      /usr/bin/mc mb minio/warehouse;
+      /usr/bin/mc policy set public minio/warehouse;
+      tail -f /dev/null
+      "
+
+# Networks
+networks:
+  iceberg_net:
