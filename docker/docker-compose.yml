@@ -33,13 +33,14 @@ services:
       - AWS_SECRET_ACCESS_KEY=20_mmatching_25
       - AWS_REGION=us-east-1
       - ZEPPELIN_NOTEBOOK_DIR=/opt/zeppelin/notebook
+      - ZEPPELIN_NOTEBOOK_STORAGE=org.apache.zeppelin.notebook.repo.VFSNotebookRepo
+      - ZEPPELIN_NOTEBOOK_VERSIONED=false
     ports:
       - 8080:8080  # Zeppelin Web UI
     volumes:
       - ./zeppelin-notebooks:/opt/zeppelin/notebook
       - ./warehouse:/opt/warehouse
-    user: "1000:1000"  # Set user to avoid permission issues
-  
+
   # Rest service
   rest:
     image         : apache/iceberg-rest-fixture
