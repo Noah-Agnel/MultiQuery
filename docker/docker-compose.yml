@@ -192,6 +192,7 @@ volumes:
   livy-logs:
   livy-conf:
   spark-conf:
+  spark-home:
   warehouse:
   zeppelin-notebooks:
   zeppelin-notebook-storage:
