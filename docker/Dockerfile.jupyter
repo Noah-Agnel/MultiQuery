@@ -1,0 +1,62 @@
+FROM tabulario/spark-iceberg:latest
+
+# Switch to root user for installations
+USER root
+
+# Install Python, pip, and other dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-dev \
+    build-essential \
+    wget \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symbolic link for python if it doesn't exist
+RUN ln -sf /usr/bin/python3 /usr/bin/python
+
+# Upgrade pip
+RUN python3 -m pip install --upgrade pip
+
+# Install Jupyter and Apache Toree
+RUN pip install jupyter \
+    toree \
+    pyspark \
+    notebook \
+    jupyterlab
+
+# Set environment variables for Spark
+ENV SPARK_HOME=/opt/spark
+ENV PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-*.zip
+ENV PYSPARK_PYTHON=python3
+ENV PYSPARK_DRIVER_PYTHON=python3
+
+# Install Toree kernel
+RUN jupyter toree install \
+    --spark_home=$SPARK_HOME \
+    --kernel_name="Spark-Scala" \
+    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=12g --executor-memory=12g --executor-cores=3 --total-executor-cores=6"
+
+# Install additional kernels for PySpark
+RUN jupyter toree install \
+    --spark_home=$SPARK_HOME \
+    --kernel_name="PySpark" \
+    --interpreters=PySpark \
+    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=12g --executor-memory=12g --executor-cores=3 --total-executor-cores=6"
+
+# Create a directory for notebooks
+RUN mkdir -p /home/iceberg/notebooks
+WORKDIR /home/iceberg/notebooks
+
+# Change ownership to iceberg user
+RUN chown -R iceberg:iceberg /home/iceberg/notebooks
+
+# Switch back to iceberg user
+USER iceberg
+
+# Expose Jupyter port
+EXPOSE 8888
+
+# Default command to start Jupyter
+CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"] 

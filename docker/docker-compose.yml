@@ -1,4 +1,29 @@
 services:
+  # Jupyter with Apache Toree service
+  jupyter-toree:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    container_name: jupyter-toree
+    networks:
+      iceberg_net:
+    depends_on:
+      - spark-iceberg
+      - rest
+      - minio
+    volumes:
+      - ./notebooks:/home/iceberg/notebooks
+      - ./warehouse:/home/iceberg/warehouse
+      - ./spark-conf:/opt/spark/conf
+    environment:
+      - SPARK_MASTER_URL=spark://spark-iceberg:7077
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=20_mmatching_25
+      - AWS_REGION=us-east-1
+      - JUPYTER_ENABLE_LAB=yes
+    ports:
+      - 8888:8888  # Jupyter Notebook
+
   # Spark and Iceberg services (MASTER)
   spark-iceberg:
     image         : tabulario/spark-iceberg
@@ -11,7 +36,6 @@ services:
     volumes:
       - ./warehouse:/home/iceberg/warehouse
       - ./spark-conf:/opt/spark/conf
-      - ./spark-home:/opt/spark
     environment:
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-iceberg
@@ -37,7 +61,6 @@ services:
     volumes:
       - ./spark-conf:/opt/spark/conf
       - ./warehouse:/home/iceberg/warehouse
-      - ./spark-home:/opt/spark
     environment:
       - SPARK_MODE=worker
       - SPARK_WORKER_HOST=spark-worker-1
@@ -62,7 +85,6 @@ services:
     volumes:
       - ./spark-conf:/opt/spark/conf
       - ./warehouse:/home/iceberg/warehouse
-      - ./spark-home:/opt/spark
     environment:
       - SPARK_MODE=worker
       - SPARK_WORKER_HOST=spark-worker-2
@@ -75,60 +97,6 @@ services:
       - AWS_SECRET_ACCESS_KEY=20_mmatching_25
       - AWS_REGION=us-east-1
 
-
-  # Livy service
-  # livy:
-  #   build:
-  #     context: .
-  #     dockerfile  : Dockerfile
-  #   container_name: livy-server
-  #   environment:
-  #     - SPARK_MASTER_ENDPOINT=spark://spark-iceberg:7077
-  #     - LIVY_SPARK_MASTER=spark://spark-iceberg:7077
-  #     - LIVY_SPARK_DEPLOY_MODE=client
-  #     - AWS_ACCESS_KEY_ID=admin
-  #     - AWS_SECRET_ACCESS_KEY=20_mmatching_25
-  #     - AWS_REGION=us-east-1
-  #   ports:
-  #     - "8998:8998"  # Livy REST API port
-  #   volumes:
-  #     - ./livy-conf:/opt/livy/conf
-  #     - ./livy-logs:/opt/livy/logs
-  #     - ./spark-conf:/opt/spark/conf
-  #     - ./warehouse:/home/iceberg/warehouse
-  #   depends_on:
-  #     - spark-iceberg
-  #     - spark-worker-1
-  #     - spark-worker-2
-  #     - minio
-  #   networks:
-  #     iceberg_net:
-  
-
-  # Zeppelin service
-  zeppelin:
-    image          : apache/zeppelin:0.10.1
-    container_name : zeppelin
-    networks:
-      iceberg_net:
-    depends_on:
-      - spark-iceberg
-    environment:
-      - SPARK_MASTER=spark://spark-iceberg:7077
-      - SPARK_HOME=/opt/spark
-      - AWS_ACCESS_KEY_ID=admin
-      - AWS_SECRET_ACCESS_KEY=20_mmatching_25
-      - AWS_REGION=us-east-1
-      - ZEPPELIN_NOTEBOOK_DIR=/opt/zeppelin/notebook
-      - ZEPPELIN_NOTEBOOK_PUBLIC=true
-      - ZEPPELIN_ANONYMOUS_ALLOWED=true
-    ports:
-      - 8080:8080
-    volumes:
-      - zeppelin-notebooks:/opt/zeppelin/notebook
-      - ./warehouse:/opt/warehouse
-      - ./spark-home:/opt/spark
-  
   # Rest service
   rest:
     image         : apache/iceberg-rest-fixture
@@ -192,7 +160,7 @@ volumes:
   livy-logs:
   livy-conf:
   spark-conf:
-  spark-home:
   warehouse:
   zeppelin-notebooks:
   zeppelin-notebook-storage:
+  notebooks:
