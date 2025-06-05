@@ -3,7 +3,6 @@ services:
   spark-iceberg:
     image         : tabulario/spark-iceberg
     container_name: spark-iceberg-master
-    build         : spark/
     networks:
       iceberg_net:
     depends_on:
@@ -29,7 +28,6 @@ services:
   spark-worker-1:
     image         : tabulario/spark-iceberg
     container_name: spark-iceberg-worker-1
-    build         : spark/
     networks:
       iceberg_net:
     depends_on:
@@ -54,7 +52,6 @@ services:
   spark-worker-2:
     image         : tabulario/spark-iceberg
     container_name: spark-iceberg-worker-2
-    build         : spark/
     networks:
       iceberg_net:
     depends_on:
