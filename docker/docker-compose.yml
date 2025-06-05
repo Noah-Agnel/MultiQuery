@@ -111,7 +111,7 @@ services:
     networks:
       iceberg_net:
     depends_on:
-      - spark-iceberg-master
+      - spark-iceberg
     environment:
       - SPARK_MASTER=spark://spark-iceberg:7077
       - AWS_ACCESS_KEY_ID=admin
