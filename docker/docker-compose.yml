@@ -106,7 +106,6 @@ services:
   zeppelin:
     image          : apache/zeppelin:0.10.1
     container_name : zeppelin
-    user           : "1000:1000"  # Run as user 1000 to avoid permission issues
     networks:
       iceberg_net:
     depends_on:
@@ -119,11 +118,21 @@ services:
       - ZEPPELIN_NOTEBOOK_DIR=/opt/zeppelin/notebook
       - ZEPPELIN_NOTEBOOK_STORAGE=org.apache.zeppelin.notebook.repo.VFSNotebookRepo
       - ZEPPELIN_NOTEBOOK_VERSIONED=false
+      # Authentication settings (optional - remove these lines for no authentication)
+      - ZEPPELIN_NOTEBOOK_PUBLIC=true
+      - ZEPPELIN_ANONYMOUS_ALLOWED=true
     ports:
       - 8080:8080  # Zeppelin Web UI
     volumes:
       - zeppelin-notebooks:/opt/zeppelin/notebook  # Use Docker volume instead of bind mount
       - ./warehouse:/opt/warehouse
+    # Fix permissions at startup
+    command: >
+      bash -c "
+        mkdir -p /opt/zeppelin/notebook &&
+        chown -R zeppelin:zeppelin /opt/zeppelin/notebook &&
+        /opt/zeppelin/bin/zeppelin.sh
+      "
 
   
   # Rest service
