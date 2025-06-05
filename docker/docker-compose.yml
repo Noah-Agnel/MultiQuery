@@ -11,6 +11,7 @@ services:
     volumes:
       - ./warehouse:/home/iceberg/warehouse
       - ./spark-conf:/opt/spark/conf
+      - ./spark-home:/opt/spark
     environment:
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-iceberg
@@ -36,6 +37,7 @@ services:
     volumes:
       - ./spark-conf:/opt/spark/conf
       - ./warehouse:/home/iceberg/warehouse
+      - ./spark-home:/opt/spark
     environment:
       - SPARK_MODE=worker
       - SPARK_WORKER_HOST=spark-worker-1
@@ -60,6 +62,7 @@ services:
     volumes:
       - ./spark-conf:/opt/spark/conf
       - ./warehouse:/home/iceberg/warehouse
+      - ./spark-home:/opt/spark
     environment:
       - SPARK_MODE=worker
       - SPARK_WORKER_HOST=spark-worker-2
@@ -112,6 +115,7 @@ services:
       - spark-iceberg
     environment:
       - SPARK_MASTER=spark://spark-iceberg:7077
+      - SPARK_HOME=/opt/spark
       - AWS_ACCESS_KEY_ID=admin
       - AWS_SECRET_ACCESS_KEY=20_mmatching_25
       - AWS_REGION=us-east-1
@@ -123,7 +127,7 @@ services:
     volumes:
       - zeppelin-notebooks:/opt/zeppelin/notebook
       - ./warehouse:/opt/warehouse
-
+      - ./spark-home:/opt/spark
   
   # Rest service
   rest:
