@@ -40,18 +40,34 @@ ENV PYSPARK_DRIVER_PYTHON=python3
 RUN jupyter toree install \
     --spark_home=$SPARK_HOME \
     --kernel_name="Spark-Scala" \
-    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=12g --executor-memory=12g --executor-cores=3 --total-executor-cores=6"
+    --spark_opts="--master=spark://localhost:7077 --driver-memory=12g --executor-memory=12g --executor-cores=3 --total-executor-cores=6"
 
 # Install additional kernels for PySpark
 RUN jupyter toree install \
     --spark_home=$SPARK_HOME \
     --kernel_name="PySpark" \
     --interpreters=PySpark \
-    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=12g --executor-memory=12g --executor-cores=3 --total-executor-cores=6"
+    --spark_opts="--master=spark://localhost:7077 --driver-memory=12g --executor-memory=12g --executor-cores=3 --total-executor-cores=6"
 
 # Create a directory for notebooks
 RUN mkdir -p /home/iceberg/notebooks
 WORKDIR /home/iceberg/notebooks
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+# Start Spark Master in background\n\
+/opt/spark/bin/spark-class org.apache.spark.deploy.master.Master \\\n\
+  --host 0.0.0.0 \\\n\
+  --port 7077 \\\n\
+  --webui-port 8083 &\n\
+\n\
+# Wait for Spark Master to start\n\
+sleep 10\n\
+\n\
+# Start Jupyter Notebook\n\
+cd /home/iceberg/notebooks\n\
+jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token="" --NotebookApp.password=""\n\
+' > /home/iceberg/start.sh && chmod +x /home/iceberg/start.sh
 
 # Change ownership to iceberg user
 RUN chown -R iceberg:iceberg /home/iceberg
@@ -61,6 +77,8 @@ USER iceberg
 
 # Expose Jupyter port
 EXPOSE 8888
+EXPOSE 7077
+EXPOSE 8083
 
-# Default command to start Jupyter
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"] 
+# Default command to start both services
+CMD ["/home/iceberg/start.sh"] 

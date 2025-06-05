@@ -1,32 +1,9 @@
 services:
-  # Jupyter with Apache Toree service
-  jupyter-toree:
+  # Spark Master with Jupyter Toree in the same container
+  spark-iceberg:
     build:
       context: .
       dockerfile: Dockerfile.jupyter
-    container_name: jupyter-toree
-    networks:
-      iceberg_net:
-    depends_on:
-      - spark-iceberg
-      - rest
-      - minio
-    volumes:
-      - ./notebooks:/home/iceberg/notebooks
-      - ./warehouse:/home/iceberg/warehouse
-      - ./spark-conf:/opt/spark/conf
-    environment:
-      - SPARK_MASTER_URL=spark://spark-iceberg:7077
-      - AWS_ACCESS_KEY_ID=admin
-      - AWS_SECRET_ACCESS_KEY=20_mmatching_25
-      - AWS_REGION=us-east-1
-      - JUPYTER_ENABLE_LAB=yes
-    ports:
-      - 8888:8888  # Jupyter Notebook
-
-  # Spark and Iceberg services (MASTER)
-  spark-iceberg:
-    image         : tabulario/spark-iceberg
     container_name: spark-iceberg-master
     networks:
       iceberg_net:
@@ -34,6 +11,7 @@ services:
       - rest
       - minio
     volumes:
+      - ./notebooks:/home/iceberg/notebooks
       - ./warehouse:/home/iceberg/warehouse
       - ./spark-conf:/opt/spark/conf
     environment:
@@ -44,11 +22,12 @@ services:
       - AWS_ACCESS_KEY_ID=admin
       - AWS_SECRET_ACCESS_KEY=20_mmatching_25
       - AWS_REGION=us-east-1
+      - JUPYTER_ENABLE_LAB=yes
     ports:
       - 4040:4040  # Spark UI
       - 7077:7077  # Spark Master
       - 8083:8083  # Spark Master Web UI
-
+      - 8888:8888  # Jupyter Notebook
 
   # Spark and Iceberg services (WORKER 1)
   spark-worker-1:
