@@ -73,32 +73,32 @@ services:
 
 
   # Livy service
-  livy:
-    build:
-      context: .
-      dockerfile  : Dockerfile
-    container_name: livy-server
-    environment:
-      - SPARK_MASTER_ENDPOINT=spark://spark-iceberg:7077
-      - LIVY_SPARK_MASTER=spark://spark-iceberg:7077
-      - LIVY_SPARK_DEPLOY_MODE=client
-      - AWS_ACCESS_KEY_ID=admin
-      - AWS_SECRET_ACCESS_KEY=20_mmatching_25
-      - AWS_REGION=us-east-1
-    ports:
-      - "8998:8998"  # Livy REST API port
-    volumes:
-      - ./livy-conf:/opt/livy/conf
-      - ./livy-logs:/opt/livy/logs
-      - ./spark-conf:/opt/spark/conf
-      - ./warehouse:/home/iceberg/warehouse
-    depends_on:
-      - spark-iceberg
-      - spark-worker-1
-      - spark-worker-2
-      - minio
-    networks:
-      iceberg_net:
+  # livy:
+  #   build:
+  #     context: .
+  #     dockerfile  : Dockerfile
+  #   container_name: livy-server
+  #   environment:
+  #     - SPARK_MASTER_ENDPOINT=spark://spark-iceberg:7077
+  #     - LIVY_SPARK_MASTER=spark://spark-iceberg:7077
+  #     - LIVY_SPARK_DEPLOY_MODE=client
+  #     - AWS_ACCESS_KEY_ID=admin
+  #     - AWS_SECRET_ACCESS_KEY=20_mmatching_25
+  #     - AWS_REGION=us-east-1
+  #   ports:
+  #     - "8998:8998"  # Livy REST API port
+  #   volumes:
+  #     - ./livy-conf:/opt/livy/conf
+  #     - ./livy-logs:/opt/livy/logs
+  #     - ./spark-conf:/opt/spark/conf
+  #     - ./warehouse:/home/iceberg/warehouse
+  #   depends_on:
+  #     - spark-iceberg
+  #     - spark-worker-1
+  #     - spark-worker-2
+  #     - minio
+  #   networks:
+  #     iceberg_net:
   
 
   # Zeppelin service
