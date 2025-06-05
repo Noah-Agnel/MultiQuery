@@ -3,6 +3,10 @@ FROM tabulario/spark-iceberg:latest
 # Switch to root user for installations
 USER root
 
+# Create iceberg user and group if they don't exist
+RUN groupadd -r iceberg || true && \
+    useradd -r -g iceberg -m -d /home/iceberg iceberg || true
+
 # Install Python, pip, and other dependencies
 RUN apt-get update && apt-get install -y \
     python3 \
@@ -50,7 +54,7 @@ RUN mkdir -p /home/iceberg/notebooks
 WORKDIR /home/iceberg/notebooks
 
 # Change ownership to iceberg user
-RUN chown -R iceberg:iceberg /home/iceberg/notebooks
+RUN chown -R iceberg:iceberg /home/iceberg
 
 # Switch back to iceberg user
 USER iceberg
