@@ -8,9 +8,9 @@ USER root
 # Download and install Livy
 ENV LIVY_VERSION=0.8.0-incubating
 RUN wget https://archive.apache.org/dist/incubator/livy/${LIVY_VERSION}/apache-livy-${LIVY_VERSION}_2.12-bin.zip && \
-    unzip apache-livy-${LIVY_VERSION}-bin.zip    && \
-    mv apache-livy-${LIVY_VERSION}-bin /opt/livy && \
-    rm apache-livy-${LIVY_VERSION}-bin.zip
+    unzip apache-livy-${LIVY_VERSION}_2.12-bin.zip    && \
+    mv apache-livy-${LIVY_VERSION}_2.12-bin /opt/livy && \
+    rm apache-livy-${LIVY_VERSION}_2.12-bin.zip
 
 
 # Set environment variables
