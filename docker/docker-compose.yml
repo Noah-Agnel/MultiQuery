@@ -14,7 +14,7 @@ services:
       - ./notebooks:/home/iceberg/notebooks
       - ./warehouse:/home/iceberg/warehouse
       - ./spark-conf:/opt/spark/conf
-      - ../src:/home/code
+      - ../:/home/code
     environment:
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-iceberg
