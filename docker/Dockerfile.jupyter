@@ -78,8 +78,6 @@ start_jupyter() {\n\
         --port=8888 \\\n\
         --no-browser \\\n\
         --allow-root \\\n\
-        --NotebookApp.token="" \\\n\
-        --NotebookApp.password="" \\\n\
         --NotebookApp.allow_origin="*" \\\n\
         --NotebookApp.disable_check_xsrf=True\n\
 }\n\
