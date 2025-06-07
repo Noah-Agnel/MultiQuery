@@ -2,27 +2,27 @@ package com.sparkmultigraph
 import  org.apache.spark.sql.SparkSession
 
 
-// Environment
-// Keys
-val SPK_EXTENS = "spark.sql.extensions"
-val SPK_CATALG = "spark.sql.catalog.spark_catalog"
-val SPK_CAT_TP = "spark.sql.catalog.spark_catalog.type"
-val SPK_CAT_UR = "spark.sql.catalog.spark_catalog.uri"
-val SPK_CAT_EP = "spark.sql.catalog.spark_catalog.s3.endpoint"
-val SPK_CAT_AK = "spark.sql.catalog.spark_catalog.s3.access-key"
-val SPK_CAT_SK = "spark.sql.catalog.spark_catalog.s3.secret-key"
-val SPK_CAT_WR = "spark.sql.catalog.spark_catalog.warehouse"
-
-// Values
-val AWS_AKID   = sys.env("AWS_ACCESS_KEY_ID")
-val AWS_SAKY   = sys.env("AWS_SECRET_ACCESS_KEY")
-val CAT_URI    = "http://iceberg-rest:8181"
-val CAT_EPT    = "http://minio:9000"
-val CAT_WHS    = "s3://warehouse"
-
-
 
 object CreateIcebergTables {
+  // Environment
+  // Keys
+  val SPK_EXTENS = "spark.sql.extensions"
+  val SPK_CATALG = "spark.sql.catalog.spark_catalog"
+  val SPK_CAT_TP = "spark.sql.catalog.spark_catalog.type"
+  val SPK_CAT_UR = "spark.sql.catalog.spark_catalog.uri"
+  val SPK_CAT_EP = "spark.sql.catalog.spark_catalog.s3.endpoint"
+  val SPK_CAT_AK = "spark.sql.catalog.spark_catalog.s3.access-key"
+  val SPK_CAT_SK = "spark.sql.catalog.spark_catalog.s3.secret-key"
+  val SPK_CAT_WR = "spark.sql.catalog.spark_catalog.warehouse"
+
+  // Values
+  val AWS_AKID   = sys.env("AWS_ACCESS_KEY_ID")
+  val AWS_SAKY   = sys.env("AWS_SECRET_ACCESS_KEY")
+  val CAT_URI    = "http://iceberg-rest:8181"
+  val CAT_EPT    = "http://minio:9000"
+  val CAT_WHS    = "s3://warehouse"
+
+  // Main function
   def main(args: Array[String]): Unit = {
     
     // Get database name from command line arguments
