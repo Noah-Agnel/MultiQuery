@@ -149,7 +149,7 @@ object CreateIcebergTables {
         created_at     TIMESTAMP
       ) USING ICEBERG
       PARTITIONED BY (
-        monts(from),
+        months(from),
         bucket(32, node_id),
         name
       )
