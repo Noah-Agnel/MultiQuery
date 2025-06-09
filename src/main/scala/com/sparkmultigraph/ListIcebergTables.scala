@@ -31,7 +31,7 @@ object ListIcebergTables {
     
     // Create Spark Session with Iceberg support
     val spark = SparkSession.builder()
-      .appName("Iceberg Tables Creation")
+      .appName("Iceberg Tables Listing")
       .config(SPK_EXTENS, "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
       .config(SPK_CATALG, "org.apache.iceberg.spark.SparkSessionCatalog")
       .config(SPK_CAT_TP, "rest")

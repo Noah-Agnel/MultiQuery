@@ -85,6 +85,8 @@ services:
     container_name: iceberg-rest
     networks:
       iceberg_net:
+    ports:
+      - 8181:8181  # Add this port mapping for REST catalog
     environment:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
