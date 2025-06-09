@@ -13,6 +13,7 @@ object ListIcebergTables {
   val SPK_CAT_AK = "spark.sql.catalog.spark_catalog.s3.access-key"
   val SPK_CAT_SK = "spark.sql.catalog.spark_catalog.s3.secret-key"
   val SPK_CAT_WR = "spark.sql.catalog.spark_catalog.warehouse"
+  val SPK_WRH_DR = "spark.sql.warehouse.dir"
 
   // Values
   val AWS_AKID   = sys.env("AWS_ACCESS_KEY_ID")
@@ -40,6 +41,7 @@ object ListIcebergTables {
       .config(SPK_CAT_AK, AWS_AKID)
       .config(SPK_CAT_SK, AWS_SAKY)
       .config(SPK_CAT_WR, CAT_WHS)
+      .config(SPK_WRH_DR, "/home/iceberg/warehouse")
       .getOrCreate()
 
 
