@@ -81,7 +81,7 @@ services:
 
   # Rest service
   rest:
-    image         : apache/iceberg-rest-fixture
+    image         : tabulario/iceberg-rest:latest
     container_name: iceberg-rest
     networks:
       iceberg_net:
@@ -94,7 +94,7 @@ services:
       - CATALOG_WAREHOUSE=${CATALOG_WAREHOUSE}
       - CATALOG_IO__IMPL=${CATALOG_IO__IMPL}
       - CATALOG_S3_ENDPOINT=${CATALOG_S3_ENDPOINT}
-  
+      - CATALOG_S3_PATH_STYLE_ACCESS=true 
 
   # Minio service
   minio:

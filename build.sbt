@@ -13,7 +13,8 @@ libraryDependencies ++= Seq(
   "org.apache.iceberg" %% "iceberg-spark-runtime-3.3" % icebergVersion,
   "org.apache.iceberg" % "iceberg-core" % icebergVersion,
   "org.apache.iceberg" % "iceberg-aws" % icebergVersion,
-  "software.amazon.awssdk" % "s3" % "2.17.52"
+  "software.amazon.awssdk" % "s3" % "2.17.52",
+  "org.apache.hadoop" % "hadoop-aws" % "3.3.2" % "provided"
 )
 
 assembly / assemblyMergeStrategy := {

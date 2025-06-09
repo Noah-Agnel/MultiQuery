@@ -43,6 +43,13 @@ object DropIcebergTables {
       .config(SPK_CAT_SK, AWS_SAKY)
       .config(SPK_CAT_WR, CAT_WHS)
       .config(SPK_WRH_DR, "/home/iceberg/warehouse")
+      // Additional S3 configurations for MinIO compatibility
+      .config("spark.sql.catalog.spark_catalog.s3.path-style-access", "true")
+      .config("spark.hadoop.fs.s3a.endpoint", CAT_EPT)
+      .config("spark.hadoop.fs.s3a.access.key", AWS_AKID)
+      .config("spark.hadoop.fs.s3a.secret.key", AWS_SAKY)
+      .config("spark.hadoop.fs.s3a.path.style.access", "true")
+      .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
       .getOrCreate()
 
     try {
