@@ -1,27 +1,7 @@
 package com.sparkmultigraph
 import  org.apache.spark.sql.SparkSession
 
-object ListIcebergTables {
-  
-  // Environment
-  // Keys
-  val SPK_EXTENS = "spark.sql.extensions"
-  val SPK_CATALG = "spark.sql.catalog.spark_catalog"
-  val SPK_CAT_TP = "spark.sql.catalog.spark_catalog.type"
-  val SPK_CAT_UR = "spark.sql.catalog.spark_catalog.uri"
-  val SPK_CAT_EP = "spark.sql.catalog.spark_catalog.s3.endpoint"
-  val SPK_CAT_AK = "spark.sql.catalog.spark_catalog.s3.access-key"
-  val SPK_CAT_SK = "spark.sql.catalog.spark_catalog.s3.secret-key"
-  val SPK_CAT_WR = "spark.sql.catalog.spark_catalog.warehouse"
-  val SPK_WRH_DR = "spark.sql.warehouse.dir"
-
-  // Values
-  val AWS_AKID   = sys.env("AWS_ACCESS_KEY_ID")
-  val AWS_SAKY   = sys.env("AWS_SECRET_ACCESS_KEY")
-  val CAT_URI    = "http://iceberg-rest:8181"
-  val CAT_EPT    = "http://minio:9000"
-  val CAT_WHS    = "s3://warehouse"
-
+object ListIcebergTables { 
   // Main function
   def main(args: Array[String]): Unit = {
     
@@ -33,22 +13,6 @@ object ListIcebergTables {
     // Create Spark Session with Iceberg support
     val spark = SparkSession.builder()
       .appName("Iceberg Tables Listing")
-      .config(SPK_EXTENS, "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
-      .config(SPK_CATALG, "org.apache.iceberg.spark.SparkSessionCatalog")
-      .config(SPK_CAT_TP, "rest")
-      .config(SPK_CAT_UR, CAT_URI )
-      .config(SPK_CAT_EP, CAT_EPT )
-      .config(SPK_CAT_AK, AWS_AKID)
-      .config(SPK_CAT_SK, AWS_SAKY)
-      .config(SPK_CAT_WR, CAT_WHS)
-      .config(SPK_WRH_DR, "/home/iceberg/warehouse")
-      // Additional S3 configurations for MinIO compatibility
-      .config("spark.sql.catalog.spark_catalog.s3.path-style-access", "true")
-      .config("spark.hadoop.fs.s3a.endpoint", CAT_EPT)
-      .config("spark.hadoop.fs.s3a.access.key", AWS_AKID)
-      .config("spark.hadoop.fs.s3a.secret.key", AWS_SAKY)
-      .config("spark.hadoop.fs.s3a.path.style.access", "true")
-      .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
       .getOrCreate()
 
 

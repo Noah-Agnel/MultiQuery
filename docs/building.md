@@ -22,10 +22,10 @@ sbt assembly
 spark-submit \
   --class com.sparkmultigraph.CreateIcebergTables \
   --master spark://spark-iceberg:7077 \
-  --driver-memory 12g \
-  --executor-memory 12g \
+  --driver-memory 6g \
+  --executor-memory 10g \
   --executor-cores 3 \
-  --total-executor-cores 6 \
+  --total-executor-cores 4 \
   target/scala-2.12/create-iceberg-tables.jar \
   my_database_name
 ```

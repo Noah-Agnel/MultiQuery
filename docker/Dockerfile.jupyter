@@ -17,6 +17,12 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install sbt via direct download (simpler alternative)
+RUN curl -L -o sbt.tgz https://github.com/sbt/sbt/releases/download/v1.9.7/sbt-1.9.7.tgz \
+    && tar -xzf sbt.tgz -C /opt \
+    && rm sbt.tgz \
+    && ln -s /opt/sbt/bin/sbt /usr/local/bin/sbt
+
 # Create symbolic link for python if it doesn't exist
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 
@@ -40,14 +46,14 @@ ENV PYSPARK_DRIVER_PYTHON=python3
 RUN jupyter toree install \
     --spark_home=$SPARK_HOME \
     --kernel_name="Spark-Scala" \
-    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=12g --executor-memory=12g --executor-cores=3 --total-executor-cores=6"
+    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=6g --executor-memory=10g --executor-cores=3 --total-executor-cores=4"
 
 # Install additional kernels for PySpark
 RUN jupyter toree install \
     --spark_home=$SPARK_HOME \
     --kernel_name="PySpark" \
     --interpreters=PySpark \
-    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=12g --executor-memory=12g --executor-cores=3 --total-executor-cores=6"
+    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=6g --executor-memory=10g --executor-cores=3 --total-executor-cores=4"
 
 # Create a directory for notebooks
 RUN mkdir -p /home/iceberg/notebooks
