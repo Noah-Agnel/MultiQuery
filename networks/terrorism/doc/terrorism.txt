@@ -1,0 +1,137 @@
+NODES:
+
+INCIDENT
+ - eventid
+ - summary      = narrative summary of the incident (available with incidents occurring after 1997)
+ - doubtterr    = 1: There is doubt as to whether the incident is an act of terrorism; 0: otherwise.
+ - multiple     = several attacks are connected, and the various actions do not constitute a single incident (time or their locations are discontinuous) 1:yes, 0:no
+ - success      = 1: The incident was successful. 0: The incident was not successful.
+ - suicide      = 1: The incident was a suicide attack. 0:There is no indication that the incident was a suicide attack.
+ - individual   = 1: The perpetrator(s) were identified by name (not known to be affiliated with a group or organization). 0: The perpetrator(s) were not identified as unaffiliated individuals.
+ - compclaim    = 1: There are competing claims of responsibility for the attack. 0: There are not competing claims. -9: unknown
+ - weapdetail   = pertinent information on the type of weapon(s) used in the incident
+ - dbsource     = original data collection effort in which each event was recorded
+ - addnotes     = additional relevant details about the attack
+ - alternative   = identifies the most likely categorization of the incident other than terrorism.
+
+
+DETAIL
+ - nperps       = total number of terrorists participating in the incident
+ - nperpcap     = number of perpetrators taken into custody
+ - nkill        = number of total confirmed fatalities for the incident
+ - nkillus      = number of U.S. citizens who died as a result of the incident
+ - nkillter     = limited to only perpetrator fatalities
+ - nwound       = number of confirmed non-fatal injuries to both perpetrators and victims.
+ - nwoundus     = number of confirmed non-fatal injuries to U.S. citizens, both perpetrators and victims.
+ - nwoundte     = number of perpetrators injured
+ - ishostkid    = 1: The victims were taken hostage or kidnapped. 0: The victims were not taken hostage or kidnapped. -9: unknown
+ - nhostkid     = total number of hostages or kidnapping victims
+ - nhostkidus   = number of U.S. citizens that were taken hostage or kidnapped
+ - nhours       = If "Attack Type" is "Hostage Taking (Kidnapping)," "Hostage Taking (Barricade Incident)", or a successful "Hijacking", then the duration of the incident is recorded
+ - ndays        = same the nhours
+ - divert       = list the country that hijackers diverted a vehicle to, or the country that the kidnap victims were moved to and held.
+ - kidhijcountry = lists the country in which the incident was resolved or ended.
+ - nreleased    = the number of hostages who survived the incident.
+
+
+SOURCE (from 1 to 3)
+ - scite       = source that was used to compile information on the specific incident
+
+
+CRITERIA (from 1 to 3)
+ - crit        = criteria
+
+
+MOTIVE:
+ - motive       = reports explicitly mention a specific motive for the attack
+
+
+COUNTRY
+ - country
+
+
+REGION
+ - region
+
+
+PROVINCE_ADMINISTRATIVE_STATE
+ - provstate
+
+
+CITY
+ - city
+ - latitude
+ - longitude
+ - specificity   = 1: event occurred in city/village/town and lat/long is for that location
+                   2: event occurred in city/village/town and no lat/long could be found. Coordinates are for centroid of smallest subnational administrative region identified;
+                   3: event did not occur in city/village/town. Coordinates are for centroid of smallest subnational administrative region identified;
+                   4: no 2nd order or smaller region could be identified. Coordinates are for center of 1st order administrative region;
+                   5: no 1st order administrative region could be identified for the location of the attack, so latitude and longitude are unknown
+ - vicinity      = 1: the incident occurred in the immediate vicinity of the city in question; 0: the incident in the city itself.
+ - location      = additional information about the location of the incident
+
+
+PROPERTY
+ - property      = 1: the incident resulted in property damage. 0: the incident did not result in property damage. -9: unknown
+ - propextent    = 1: catastrophic (likely ≥ $1 billion). 2: major (likely ≥ $1 million but < $1 billion). 3: minor (likely < $1 million)
+ - propvalue     = the exact U.S. dollar amount (at the time of the incident) of total damages is listed.
+ - propcomment   = non-monetary or imprecise measures of damage may be described in this field
+
+
+WEAP: (from 1 to 4)
+ - weaptype
+ - weapsubtype
+
+
+CLAIM (from 1 to 3)
+ - claim         = 1: A group or person claimed responsibility for the attack. 0: No claim of responsibility was made.
+ - claimmode     = modes used by claimants to claim responsibility and might be useful to verify authenticity, track trends in behavior, etc.
+
+
+GROUP_NAME (from 1 to 3)
+ - gname         = name of the group that carried out the attack
+ - gsubname      = additional qualifiers or details about the name of the group that carried out the attack.
+ - guncertain    = 1: The perpetrator attribution(s) for the incident are suspected. 0: The perpetrator attribution(s) for the incident are not suspected.
+
+
+RANSOM
+ - ransom        = 1: The incident involved a demand of monetary ransom. 0: The incident did not involve a demand of monetary ransom. -9: unknown
+ - ransomamt     = the amount (in U.S. dollars)
+ - ransomamtus   = if a ransom was demanded from U.S. sources, then the amount (in U.S. dollars)
+ - ransompaid    = if a ransom amount was paid, then the amount (in U.S. dollars)
+ - ransompaidus  = If a ransom amount was paid by U.S. sources, then this figure is listed in U.S. dollars
+ - ransomnote    = any specific details relating to a ransom that are not captured in the other fields.
+
+
+HOSTAGE_OUTCOME
+ - hostkidoutcome = captures the eventual fate of hostages and kidnap victims.
+
+
+TARGET (from 1 to 3)
+ - corp          = name of the corporate entity or government agency that was targeted
+ - target        = specific person, building, installation, etc.
+
+
+
+EDGES:
+
+(INCIDENT)-[:HAS_WEAPON]->(WEAP)
+(INCIDENT)-[:HAS_CLAIM]->(CLAIM)
+(INCIDENT)-[:INVOLVES_PROPERTY]->(PROPERTY)
+(INCIDENT)-[:DEMANDS_RANSOM]->(RANSOM)
+(INCIDENT)-[:TARGETS]->(TARGET)
+(INCIDENT)-[:PERPETRATED_BY]->(GROUP_NAME)
+(INCIDENT)-[:HAS_HOSTAGE_OUTCOME]->(HOSTAGE_OUTCOME)
+(INCIDENT)-[:OCCURS_IN_COUNTRY]->(COUNTRY)
+(INCIDENT)-[:OCCURS_IN_REGION]->(REGION)
+(INCIDENT)-[:OCCURS_IN_PROVINCE]->(PROVINCE)
+(INCIDENT)-[:OCCURS_IN_CITY]->(CITY)
+(REGION)-[:CONTAINS]->(COUNTRY)
+(COUNTRY)-[:CONTAINS]->(PROVINCE_ADMINISTRATIVE_STATE)
+(PROVINCE_ADMINISTRATIVE_STATE)-[:CONTAINS]->(CITY)
+(TARGET)-[:HAS_NATIONALITY]->(COUNTRY)
+(INCIDENT)-[:HAS_MOTIVE]->(MOTIVE)
+(INCIDENT)-[:HAS_SOURCE]->(SOURCE)
+(INCIDENT)-[:HAS_CRITERIA]->(CRITERIA)
+(INCIDENT)-[:IS_RELATED]->(INCIDENT)
+

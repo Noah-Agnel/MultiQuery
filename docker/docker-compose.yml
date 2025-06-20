@@ -30,6 +30,8 @@ services:
       MINIO_REGION        : ${AWS_REGION}
     networks:
       iceberg_net:
+        aliases:
+          - warehouse.minio
     ports:
       - 9001:9001  # MinIO Console (optional)
       - 9000:9000

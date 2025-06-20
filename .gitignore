@@ -1,6 +1,15 @@
 .env
+.venv
 
 docker/warehouse
 
 project
 target
+
+networks/terrorism/data
+networks/terrorism/neo4j_import
+networks/terrorism/temporal_mri_import
+
+__pycache__/
+*.py[cod]
+

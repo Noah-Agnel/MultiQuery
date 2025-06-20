@@ -69,7 +69,7 @@ object CreateIcebergTables {
     println("Creating node_pair_matches table...")
     spark.sql(s"""
       CREATE TABLE IF NOT EXISTS $dbName.node_pair_matches (
-        match_id          BIGINT,
+        nodes_match_id    BIGINT,
         pair_id           BIGINT,
         source_node_id    BIGINT,
         target_node_id    BIGINT,
@@ -84,14 +84,14 @@ object CreateIcebergTables {
   private def createMatchEdgesTable(spark: SparkSession, dbName: String): Unit = {
     println("Creating match_edges table...")
     spark.sql(s"""
-      CREATE TABLE IF NOT EXISTS $dbName.match_edges (
-        match_edge_id     BIGINT,
-        match_id          BIGINT,
+      CREATE TABLE IF NOT EXISTS $dbName.edges_matches (
+        edge_match_id     BIGINT,
+        nodes_match_id    BIGINT,
         edge_id           BIGINT,
         created_at        TIMESTAMP
       ) USING ICEBERG
       PARTITIONED BY (
-        bucket(32, match_id)
+        bucket(32, nodes_match_id)
       )
     """)
   }
@@ -101,12 +101,13 @@ object CreateIcebergTables {
     spark.sql(s"""
       CREATE TABLE IF NOT EXISTS $dbName.node_static_props (
         node_id        BIGINT,
-        names_values   MAP<STRING, STRING>,
+        original_id    STRING,
+        static_props   MAP<STRING, STRING>,
         created_at     TIMESTAMP,
         is_active      BOOLEAN
       ) USING ICEBERG
       PARTITIONED BY (
-        bucket(32, node_id)
+        bucket(32, original_id)
       )
     """)
   }
@@ -116,6 +117,7 @@ object CreateIcebergTables {
     spark.sql(s"""
       CREATE TABLE IF NOT EXISTS $dbName.node_dynamic_props (
         node_id        BIGINT,
+        original_id    STRING,
         name           STRING,
         value          STRING,
         from           TIMESTAMP,
@@ -123,7 +125,7 @@ object CreateIcebergTables {
         created_at     TIMESTAMP
       ) USING ICEBERG
       PARTITIONED BY (
-        bucket(32, node_id),
+        bucket(32, original_id),
         name
       )
     """)
@@ -134,7 +136,7 @@ object CreateIcebergTables {
     spark.sql(s"""
       CREATE TABLE IF NOT EXISTS $dbName.edge_static_props (
         edge_id        BIGINT,
-        names_values   MAP<STRING, STRING>,
+        static_props   MAP<STRING, STRING>,
         from           TIMESTAMP,
         to             TIMESTAMP,
         created_at     TIMESTAMP
@@ -149,11 +151,12 @@ object CreateIcebergTables {
     println("Creating edge_dynamic_props table...")
     spark.sql(s"""
       CREATE TABLE IF NOT EXISTS $dbName.edge_dynamic_props (
-        edge_id        BIGINT,
-        name           STRING,
-        value          STRING,
-        from           TIMESTAMP,
-        to             TIMESTAMP
+        dynamic_edge_id BIGINT,
+        edge_id         BIGINT,
+        name            STRING,
+        value           STRING,
+        from            TIMESTAMP,
+        to              TIMESTAMP
       ) USING ICEBERG
       PARTITIONED BY (
         bucket(32, edge_id),
