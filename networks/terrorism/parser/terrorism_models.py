@@ -225,7 +225,7 @@ class Property:
     Represents property damage information
     """
     def __init__(self, row):
-        self.labels        =    ["Property"       ]
+        self.labels        =    ["Property"      ]
         self.property      = row['property'      ] if 'property'         in row else None
         self.propextentid  = row['propextent'    ] if 'propextent'       in row else None
         self.propextent    = row['propextent_txt'] if 'propextent_txt'   in row else None
@@ -444,7 +444,8 @@ class EdgesManaging:
     Represents the edges managing
     """
     def __init__(self):
-        self.edges = []
+        self.edges      = []
+        self.code_edges = set()
 
     def add_edge(self, src_id, dst_id, edge_type):
         """
@@ -453,13 +454,25 @@ class EdgesManaging:
         if src_id is None or dst_id is None:
             return
         
-        self.edges.append(
-            {
-                'src'  : src_id,
-                'dst'  : dst_id,
-                'type' : edge_type
-            }
-        )
+        edge = {
+            'src'  : src_id,
+            'dst'  : dst_id,
+            'type' : edge_type
+        }
+        
+        edge_hash = hashlib.sha256(json.dumps(edge, sort_keys=True).encode('utf-8')).hexdigest()
+        
+        if edge_hash in self.code_edges:
+            return
+
+        self.edges.append(edge)
+        self.code_edges.add(edge_hash)
+    
+    def reset_edges(self):
+        """
+        Resets the edges
+        """
+        self.edges = [] 
 
 
 # FUNCTIONS:
@@ -486,6 +499,9 @@ def nodes_edges_creation(row, node_manager:NodesManaging, edge_manager:EdgesMana
     """
     # NODES CREATION:
     incident_id          = node_manager.add_node(Incident(row)      , 'incident'  )
+    if incident_id is None:
+        return
+    
     detail_id            = node_manager.add_node(Detail(row)        , 'detail'    )
     first_source_id      = node_manager.add_node(Source(row, 1)     , 'source'    )
     second_source_id     = node_manager.add_node(Source(row, 2)     , 'source'    )
@@ -519,57 +535,86 @@ def nodes_edges_creation(row, node_manager:NodesManaging, edge_manager:EdgesMana
 
     # EDGES CREATION:
     # DETAIL:
-    edge_manager.add_edge(incident_id, detail_id            , 'IS_CHARACTERIZED_BY')
+    if detail_id is not None:
+        edge_manager.add_edge(incident_id, detail_id            , 'IS_CHARACTERIZED_BY')
     
     # SOURCES:
-    edge_manager.add_edge(incident_id, first_source_id      , 'IS_POWERED_BY')
-    edge_manager.add_edge(incident_id, second_source_id     , 'IS_POWERED_BY')
-    edge_manager.add_edge(incident_id, third_source_id      , 'IS_POWERED_BY')
+    if first_source_id is not None:
+        edge_manager.add_edge(incident_id, first_source_id      , 'IS_POWERED_BY')
+    if second_source_id is not None:
+        edge_manager.add_edge(incident_id, second_source_id     , 'IS_POWERED_BY')
+    if third_source_id is not None:
+        edge_manager.add_edge(incident_id, third_source_id      , 'IS_POWERED_BY')
 
     # CRITERIA:
-    edge_manager.add_edge(incident_id, first_criteria_id    , 'IS_BASED_ON')
-    edge_manager.add_edge(incident_id, second_criteria_id   , 'IS_BASED_ON')
-    edge_manager.add_edge(incident_id, third_criteria_id    , 'IS_BASED_ON')
+    if first_criteria_id is not None:
+        edge_manager.add_edge(incident_id, first_criteria_id    , 'IS_BASED_ON')
+    if second_criteria_id is not None:
+        edge_manager.add_edge(incident_id, second_criteria_id   , 'IS_BASED_ON')
+    if third_criteria_id is not None:
+        edge_manager.add_edge(incident_id, third_criteria_id    , 'IS_BASED_ON')
 
     # MOTIVE:
-    edge_manager.add_edge(incident_id, motive_id            , 'IS_CAUSED_BY')
+    if motive_id is not None:
+        edge_manager.add_edge(incident_id, motive_id            , 'IS_CAUSED_BY')
 
     # COUNTRY:
-    edge_manager.add_edge(incident_id, country_id           , 'OCCURRED_IN')
-    edge_manager.add_edge(incident_id, region_id            , 'OCCURRED_IN')
-    edge_manager.add_edge(incident_id, prov_adm_state_id    , 'OCCURRED_IN')
-    edge_manager.add_edge(incident_id, city_id              , 'OCCURRED_IN')
+    if country_id is not None:
+        edge_manager.add_edge(incident_id, country_id           , 'OCCURRED_IN')
+    if region_id is not None:
+        edge_manager.add_edge(incident_id, region_id            , 'OCCURRED_IN')
+    if prov_adm_state_id is not None:
+        edge_manager.add_edge(incident_id, prov_adm_state_id    , 'OCCURRED_IN')
+    if city_id is not None:
+        edge_manager.add_edge(incident_id, city_id              , 'OCCURRED_IN')
 
     # PROPERTY:
-    edge_manager.add_edge(incident_id, property_id          , 'HAS_PROPERTY')
+    if property_id is not None:
+        edge_manager.add_edge(incident_id, property_id          , 'HAS_PROPERTY')
 
     # WEAPON:
-    edge_manager.add_edge(incident_id, first_weapon_id      , 'EMPLOYED')
-    edge_manager.add_edge(incident_id, second_weapon_id     , 'EMPLOYED')
-    edge_manager.add_edge(incident_id, third_weapon_id      , 'EMPLOYED')
-    edge_manager.add_edge(incident_id, fourth_weapon_id     , 'EMPLOYED')
+    if first_weapon_id is not None:
+        edge_manager.add_edge(incident_id, first_weapon_id      , 'EMPLOYED')
+    if second_weapon_id is not None:
+        edge_manager.add_edge(incident_id, second_weapon_id     , 'EMPLOYED')
+    if third_weapon_id is not None:
+        edge_manager.add_edge(incident_id, third_weapon_id      , 'EMPLOYED')
+    if fourth_weapon_id is not None:
+        edge_manager.add_edge(incident_id, fourth_weapon_id     , 'EMPLOYED')
 
     # CLAIM:
-    edge_manager.add_edge(incident_id, first_claim_id       , 'HAS_CLAIM')
-    edge_manager.add_edge(incident_id, second_claim_id      , 'HAS_CLAIM')
-    edge_manager.add_edge(incident_id, third_claim_id       , 'HAS_CLAIM')
+    if first_claim_id is not None:
+        edge_manager.add_edge(incident_id, first_claim_id       , 'HAS_CLAIM')
+    if second_claim_id is not None:
+        edge_manager.add_edge(incident_id, second_claim_id      , 'HAS_CLAIM')
+    if third_claim_id is not None:
+        edge_manager.add_edge(incident_id, third_claim_id       , 'HAS_CLAIM')
 
     # GROUP NAME:
-    edge_manager.add_edge(incident_id, first_group_name_id  , 'IS_CARRIED_OUT_BY')
-    edge_manager.add_edge(incident_id, second_group_name_id , 'IS_CARRIED_OUT_BY')
-    edge_manager.add_edge(incident_id, third_group_name_id  , 'IS_CARRIED_OUT_BY')
+    if first_group_name_id is not None:
+        edge_manager.add_edge(incident_id, first_group_name_id  , 'IS_CARRIED_OUT_BY')
+    if second_group_name_id is not None:
+        edge_manager.add_edge(incident_id, second_group_name_id , 'IS_CARRIED_OUT_BY')
+    if third_group_name_id is not None:
+        edge_manager.add_edge(incident_id, third_group_name_id  , 'IS_CARRIED_OUT_BY')
 
     # RANSOM:
-    edge_manager.add_edge(incident_id, ransom_id            , 'DEMANDS')
+    if ransom_id is not None:
+        edge_manager.add_edge(incident_id, ransom_id            , 'DEMANDS')
 
     # HOSTAGE OUTCOME:
-    edge_manager.add_edge(incident_id, hostage_outcome_id   , 'HAS')
+    if hostage_outcome_id is not None:
+        edge_manager.add_edge(incident_id, hostage_outcome_id   , 'HAS')
 
     # TARGET:
-    edge_manager.add_edge(incident_id, first_target_id      , 'IS_MEANT_TO')
-    edge_manager.add_edge(incident_id, second_target_id     , 'IS_MEANT_TO')
-    edge_manager.add_edge(incident_id, third_target_id      , 'IS_MEANT_TO')
+    if first_target_id is not None:
+        edge_manager.add_edge(incident_id, first_target_id      , 'IS_MEANT_TO')
+    if second_target_id is not None:
+        edge_manager.add_edge(incident_id, second_target_id     , 'IS_MEANT_TO')
+    if third_target_id is not None:
+        edge_manager.add_edge(incident_id, third_target_id      , 'IS_MEANT_TO')
 
     # RELATEDS:
     for related in relateds:
-        edge_manager.add_edge(incident_id, related          , 'IS_RELATED_TO')
+        if related is not None:
+            edge_manager.add_edge(incident_id, related          , 'IS_RELATED_TO')

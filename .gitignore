@@ -9,6 +9,7 @@ target
 networks/terrorism/data
 networks/terrorism/neo4j_import
 networks/terrorism/temporal_mri_import
+networks/terrorism/config/config.json
 
 __pycache__/
 *.py[cod]

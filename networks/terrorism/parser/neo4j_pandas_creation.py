@@ -15,6 +15,8 @@ def nodes_dataframes_creation(nodes_data):
     for node_type, nodes in nodes_data.items():
         nodes_dataframes[node_type] = [node.__dict__.copy() for node in nodes]
         for node in nodes_dataframes[node_type]:
+            if "id" not in node:
+                print(node)
             node["id:ID"] = node.pop("id")
             for key, value in node.items():
                 if not isinstance(value, list):
