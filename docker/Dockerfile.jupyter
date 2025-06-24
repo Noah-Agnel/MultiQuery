@@ -46,14 +46,14 @@ ENV PYSPARK_DRIVER_PYTHON=python3
 RUN jupyter toree install \
     --spark_home=$SPARK_HOME \
     --kernel_name="Spark-Scala" \
-    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=6g --executor-memory=10g --executor-cores=3 --total-executor-cores=4"
+    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=6g --executor-memory=10g --executor-cores=3 --total-executor-cores=4 --packages org.apache.hadoop:hadoop-aws:3.3.2,com.amazonaws:aws-java-sdk-bundle:1.12.262"
 
 # Install additional kernels for PySpark
 RUN jupyter toree install \
     --spark_home=$SPARK_HOME \
     --kernel_name="PySpark" \
     --interpreters=PySpark \
-    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=6g --executor-memory=10g --executor-cores=3 --total-executor-cores=4"
+    --spark_opts="--master=spark://spark-iceberg:7077 --driver-memory=6g --executor-memory=10g --executor-cores=3 --total-executor-cores=4 --packages org.apache.hadoop:hadoop-aws:3.3.2,com.amazonaws:aws-java-sdk-bundle:1.12.262"
 
 # Create a directory for notebooks
 RUN mkdir -p /home/iceberg/notebooks

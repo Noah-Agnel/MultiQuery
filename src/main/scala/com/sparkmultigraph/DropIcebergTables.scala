@@ -5,7 +5,7 @@ import  org.apache.spark.sql.SparkSession
 object DropIcebergTables {
 
   // Environment
-// Keys
+  // Keys
   val SPK_EXTENS = "spark.sql.extensions"
   val SPK_CATALG = "spark.sql.catalog.spark_catalog"
   val SPK_CAT_TP = "spark.sql.catalog.spark_catalog.type"
