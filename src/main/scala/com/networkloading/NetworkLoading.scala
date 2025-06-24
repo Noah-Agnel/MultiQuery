@@ -16,7 +16,7 @@ object NetworkLoading {
     def main(args: Array[String]): Unit = {
        val spark = SparkSession.builder()
       .appName("Network Loading")
-      .config(SPK_HD_EP,   "http://minio:9001")
+      .config(SPK_HD_EP,   "http://minio:9000")
       .config(SPK_HD_AK,   sys.env("AWS_ACCESS_KEY_ID"))
       .config(SPK_HD_SK,   sys.env("AWS_SECRET_ACCESS_KEY"))
       .config(SPK_HD_PS,   "true")
