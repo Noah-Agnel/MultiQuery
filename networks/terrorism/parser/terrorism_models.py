@@ -531,9 +531,9 @@ def nodes_edges_creation(row, node_manager:NodesManaging, edge_manager:EdgesMana
     first_target_id       = node_manager.add_node(Target(row, 1)     , 'target'    )
     second_target_id      = node_manager.add_node(Target(row, 2)     , 'target'    )
     third_target_id       = node_manager.add_node(Target(row, 3)     , 'target'    )
-    first_nationality_id  = node_manager.add_node(Country(row, 1)    , 'country'   )
-    second_nationality_id = node_manager.add_node(Country(row, 2)    , 'country'   )
-    third_nationality_id  = node_manager.add_node(Country(row, 3)    , 'country'   )
+    first_nationality_id  = node_manager.add_node(Country(row  )     , 'country'   )
+    second_nationality_id = node_manager.add_node(Country(row  )     , 'country'   )
+    third_nationality_id  = node_manager.add_node(Country(row  )     , 'country'   )
     relateds              = row['related'].split(",") if 'related' in row else []
 
     # EDGES CREATION:
