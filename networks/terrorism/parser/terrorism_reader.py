@@ -18,6 +18,9 @@ if __name__ == "__main__":
 
 
     for path_key, path_value in config.items():
+        if "path" not in path_key:
+            continue
+        
         print(f"Processing: {path_key}")
         header     = pd.read_excel(path_value, nrows=0)
         batch_num  = 0
@@ -57,48 +60,52 @@ if __name__ == "__main__":
                     edge_manager
                 )
 
-            # NEO4J CSV CREATION:
-            print(f"Creating nodes and edges for neo4j")
-            nodes_dataframes = nodes_dataframes_creation(node_manager.nodes)
-            edges_dataframes = edges_dataframes_creation(edge_manager.edges)
+            if config["db_selection"] == "neo4j":
+                # NEO4J CSV CREATION:
+                print(f"Creating nodes and edges for neo4j")
+                nodes_dataframes = nodes_dataframes_creation(node_manager.nodes)
+                edges_dataframes = edges_dataframes_creation(edge_manager.edges)
 
-            # NEO4J CSV SAVING:
-            Path(path_3).mkdir(parents=True, exist_ok=True)
-            for node_type, node_df in nodes_dataframes.items():
-                if batch_num == 0: 
-                    node_df.to_csv(
-                       f"{path_3}/{node_type}.csv",
-                       index   = False
+                # NEO4J CSV SAVING:
+                Path(path_3).mkdir(parents=True, exist_ok=True)
+                for node_type, node_df in nodes_dataframes.items():
+                    if batch_num == 0: 
+                        node_df.to_csv(
+                        f"{path_3}/{node_type}.csv",
+                        index   = False
+                        )
+                    else:
+                        node_df.to_csv(
+                            f"{path_3}/{node_type}.csv", 
+                            mode   = "a", 
+                            header = False, 
+                            index  = False
+                        )
+                
+                if batch_num == 0:     
+                    edges_dataframes.to_csv(
+                        f"{path_3}/edges.csv",
+                        index = False
                     )
                 else:
-                    node_df.to_csv(
-                        f"{path_3}/{node_type}.csv", 
+                    edges_dataframes.to_csv(
+                        f"{path_3}/edges.csv", 
                         mode   = "a", 
                         header = False, 
                         index  = False
                     )
-            
-            if batch_num == 0:     
-                edges_dataframes.to_csv(
-                    f"{path_3}/edges.csv",
-                    index = False
-                )
             else:
-                edges_dataframes.to_csv(
-                    f"{path_3}/edges.csv", 
-                    mode   = "a", 
-                    header = False, 
-                    index  = False
-                )
+                # MRI JSON CREATION:
+                print(f"Creating nodes and edges for MRI")
+                nodes_static_props = static_nodes_json_creation(node_manager.nodes)
+                edges_static_props = static_edges_json_creation(edge_manager.edges)
 
-            # MRI JSON CREATION:
-            print(f"Creating nodes and edges for MRI")
-            nodes_static_props = static_nodes_json_creation(node_manager.nodes)
-            edges_static_props = static_edges_json_creation(edge_manager.edges)
-
-            # MRI JSON SAVING:
-            Path(path_4).mkdir(parents=True, exist_ok=True)
-            with open(f"{path_4}/nodes_static_props_{batch_num}.json", "w") as f:
-                json.dump(nodes_static_props, f, indent=4)
-            with open(f"{path_4}/edges_static_props_{batch_num}.json", "w") as f:
-                json.dump(edges_static_props, f, indent=4)
+                # MRI JSON SAVING:
+                Path(path_4).mkdir(parents=True, exist_ok=True)
+                for node_type, nodes in nodes_static_props.items():
+                    if len(nodes) == 0:
+                        continue
+                    with open(f"{path_4}/{path_key}_{node_type}_nodes_static_props_{batch_num}.json", "w") as f:
+                        json.dump(nodes, f, indent=4)
+                with open(f"{path_4}/{path_key}_edges_static_props_{batch_num}.json", "w") as f:
+                    json.dump(edges_static_props, f, indent=4)

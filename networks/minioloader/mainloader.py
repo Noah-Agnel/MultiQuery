@@ -79,7 +79,7 @@ def main():
 
         
         # Skip if not nodes or edges
-        if "nodes" not in file_low and "edges" not in file_low:
+        if "node" not in file_low and "edge" not in file_low:
             continue
 
         # Skip if not json or csv

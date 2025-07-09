@@ -37,5 +37,6 @@ def edges_dataframes_creation(edges):
         edge["src:ID"   ] = edge.pop("src")
         edge["dst:ID"   ] = edge.pop("dst")
         edge["type:TYPE"] = edge.pop("type")
+        edge["edge_id"  ] = edge.pop("edge_id")
         edges_dataframes.append(edge)
     return pd.DataFrame(edges_dataframes)
