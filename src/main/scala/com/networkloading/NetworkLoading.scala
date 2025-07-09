@@ -1,5 +1,6 @@
 package com.networkloading
 import  org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.col
 
 object NetworkLoading {
 
@@ -27,11 +28,15 @@ object NetworkLoading {
        // Examples of reading files from S3/MinIO buckets
        // Read JSON file from bucket
        val jsonDF = spark.read
-         .json("s3a://terrorismnetworkfile/nodes_static_props_1.json")
+         .option("multiline","true")
+         .json("s3a://terrorismnetworkfile/path_1_city_node_static_props_1.json")
+         .cache()
        
+       println(jsonDF.show())
+
        // Example: Show the data
-       jsonDF.show(10)
-       jsonDF.printSchema()
+       //jsonDF.show(10)
+       //jsonDF.printSchema()
        
        spark.stop()
     }
