@@ -16,7 +16,7 @@ def static_nodes_json_creation(nodes):
             node_id = node.pop("id")
             labels  = node.pop("labels")
             nodes_static_props[node_type].append({
-               "original_id" : node_id,
+               "node_id"     : node_id,
                "labels"      : labels,
                "static_props": node,
                "is_active"   : True
@@ -36,6 +36,7 @@ def static_edges_json_creation(edges):
     """
     edges_static_props = [
         {
+            "edge_id"     : edge.pop("edge_id"),
             "source_id"   : edge.pop("src"),
             "target_id"   : edge.pop("dst"),
             "edge_type"   : edge.pop("type"),

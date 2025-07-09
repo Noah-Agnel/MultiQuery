@@ -465,6 +465,7 @@ class EdgesManaging:
         if edge_hash in self.code_edges:
             return
 
+        edge['edge_id'] = edge_hash
         self.edges.append(edge)
         self.code_edges.add(edge_hash)
     
@@ -502,36 +503,38 @@ def nodes_edges_creation(row, node_manager:NodesManaging, edge_manager:EdgesMana
     if incident_id is None:
         return
     
-    detail_id            = node_manager.add_node(Detail(row)        , 'detail'    )
-    first_source_id      = node_manager.add_node(Source(row, 1)     , 'source'    )
-    second_source_id     = node_manager.add_node(Source(row, 2)     , 'source'    )
-    third_source_id      = node_manager.add_node(Source(row, 3)     , 'source'    )
-    first_criteria_id    = node_manager.add_node(Criteria(row, 1)   , 'criteria'  )
-    second_criteria_id   = node_manager.add_node(Criteria(row, 2)   , 'criteria'  )
-    third_criteria_id    = node_manager.add_node(Criteria(row, 3)   , 'criteria'  )
-    motive_id            = node_manager.add_node(Motive(row)        , 'motive'    )
-    country_id           = node_manager.add_node(Country(row)       , 'country'   )
-    region_id            = node_manager.add_node(Region(row)        , 'region'    )  
-    prov_adm_state_id    = node_manager.add_node(ProvinceAdministrativeState(row), 'prov_adminis_state')
-    city_id              = node_manager.add_node(City(row)          , 'city'      )
-    property_id          = node_manager.add_node(Property(row)      , 'property'  )
-    first_weapon_id      = node_manager.add_node(Weapon(row, 1)     , 'weapon'    )
-    second_weapon_id     = node_manager.add_node(Weapon(row, 2)     , 'weapon'    )
-    third_weapon_id      = node_manager.add_node(Weapon(row, 3)     , 'weapon'    )
-    fourth_weapon_id     = node_manager.add_node(Weapon(row, 4)     , 'weapon'    )
-    first_claim_id       = node_manager.add_node(Claim(row, 'ed')   , 'claim'     )
-    second_claim_id      = node_manager.add_node(Claim(row, 2)      , 'claim'     )
-    third_claim_id       = node_manager.add_node(Claim(row, 3)      , 'claim'     )
-    first_group_name_id  = node_manager.add_node(GroupName(row, '') , 'group_name')
-    second_group_name_id = node_manager.add_node(GroupName(row, 2)  , 'group_name')
-    third_group_name_id  = node_manager.add_node(GroupName(row, 3)  , 'group_name')
-    ransom_id            = node_manager.add_node(Ransom(row)        , 'ransom'    )
-    hostage_outcome_id   = node_manager.add_node(HostageOutcome(row), 'hostage_outcome')
-    first_target_id      = node_manager.add_node(Target(row, 1)     , 'target'    )
-    second_target_id     = node_manager.add_node(Target(row, 2)     , 'target'    )
-    third_target_id      = node_manager.add_node(Target(row, 3)     , 'target'    )
-
-    relateds             = row['related'].split(",") if 'related' in row else []
+    detail_id             = node_manager.add_node(Detail(row)        , 'detail'    )
+    first_source_id       = node_manager.add_node(Source(row, 1)     , 'source'    )
+    second_source_id      = node_manager.add_node(Source(row, 2)     , 'source'    )
+    third_source_id       = node_manager.add_node(Source(row, 3)     , 'source'    )
+    first_criteria_id     = node_manager.add_node(Criteria(row, 1)   , 'criteria'  )
+    second_criteria_id    = node_manager.add_node(Criteria(row, 2)   , 'criteria'  )
+    third_criteria_id     = node_manager.add_node(Criteria(row, 3)   , 'criteria'  )
+    motive_id             = node_manager.add_node(Motive(row)        , 'motive'    )
+    country_id            = node_manager.add_node(Country(row)       , 'country'   )
+    region_id             = node_manager.add_node(Region(row)        , 'region'    )  
+    prov_adm_state_id     = node_manager.add_node(ProvinceAdministrativeState(row), 'prov_adminis_state')
+    city_id               = node_manager.add_node(City(row)          , 'city'      )
+    property_id           = node_manager.add_node(Property(row)      , 'property'  )
+    first_weapon_id       = node_manager.add_node(Weapon(row, 1)     , 'weapon'    )
+    second_weapon_id      = node_manager.add_node(Weapon(row, 2)     , 'weapon'    )
+    third_weapon_id       = node_manager.add_node(Weapon(row, 3)     , 'weapon'    )
+    fourth_weapon_id      = node_manager.add_node(Weapon(row, 4)     , 'weapon'    )
+    first_claim_id        = node_manager.add_node(Claim(row, 'ed')   , 'claim'     )
+    second_claim_id       = node_manager.add_node(Claim(row, 2)      , 'claim'     )
+    third_claim_id        = node_manager.add_node(Claim(row, 3)      , 'claim'     )
+    first_group_name_id   = node_manager.add_node(GroupName(row, '') , 'group_name')
+    second_group_name_id  = node_manager.add_node(GroupName(row, 2)  , 'group_name')
+    third_group_name_id   = node_manager.add_node(GroupName(row, 3)  , 'group_name')
+    ransom_id             = node_manager.add_node(Ransom(row)        , 'ransom'    )
+    hostage_outcome_id    = node_manager.add_node(HostageOutcome(row), 'hostage_outcome')
+    first_target_id       = node_manager.add_node(Target(row, 1)     , 'target'    )
+    second_target_id      = node_manager.add_node(Target(row, 2)     , 'target'    )
+    third_target_id       = node_manager.add_node(Target(row, 3)     , 'target'    )
+    first_nationality_id  = node_manager.add_node(Country(row, 1)    , 'country'   )
+    second_nationality_id = node_manager.add_node(Country(row, 2)    , 'country'   )
+    third_nationality_id  = node_manager.add_node(Country(row, 3)    , 'country'   )
+    relateds              = row['related'].split(",") if 'related' in row else []
 
     # EDGES CREATION:
     # DETAIL:
@@ -609,10 +612,28 @@ def nodes_edges_creation(row, node_manager:NodesManaging, edge_manager:EdgesMana
     # TARGET:
     if first_target_id is not None:
         edge_manager.add_edge(incident_id, first_target_id      , 'IS_MEANT_TO')
+        if first_nationality_id is not None:
+            edge_manager.add_edge(
+                first_target_id,
+                first_nationality_id, 
+                'HAS_NATIONALITY'
+            )
     if second_target_id is not None:
         edge_manager.add_edge(incident_id, second_target_id     , 'IS_MEANT_TO')
+        if second_nationality_id is not None:
+            edge_manager.add_edge(
+                second_target_id, 
+                second_nationality_id, 
+                'HAS_NATIONALITY'
+            )
     if third_target_id is not None:
         edge_manager.add_edge(incident_id, third_target_id      , 'IS_MEANT_TO')
+        if third_nationality_id is not None:
+            edge_manager.add_edge(
+                third_target_id, 
+                third_nationality_id, 
+                'HAS_NATIONALITY'
+            )
 
     # RELATEDS:
     for related in relateds:

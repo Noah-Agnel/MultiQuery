@@ -100,14 +100,17 @@ object CreateIcebergTables {
     println("Creating node_static_props table...")
     spark.sql(s"""
       CREATE TABLE IF NOT EXISTS $dbName.node_static_props (
-        node_id        BIGINT,
-        original_id    STRING,
-        static_props   MAP<STRING, STRING>,
+        property_id    BIGINT,
+        node_id        STRING,
+        name           STRING,
+        value          STRING,
         created_at     TIMESTAMP,
-        is_active      BOOLEAN
+        is_active      BOOLEAN,
+        is_deleted     BOOLEAN
       ) USING ICEBERG
       PARTITIONED BY (
-        bucket(32, original_id)
+        bucket(32, node_id),
+        name
       )
     """)
   }
@@ -116,8 +119,8 @@ object CreateIcebergTables {
     println("Creating node_dynamic_props table...")
     spark.sql(s"""
       CREATE TABLE IF NOT EXISTS $dbName.node_dynamic_props (
-        node_id        BIGINT,
-        original_id    STRING,
+        property_id    BIGINT,
+        node_id        STRING,
         name           STRING,
         value          STRING,
         from           TIMESTAMP,
@@ -125,7 +128,7 @@ object CreateIcebergTables {
         created_at     TIMESTAMP
       ) USING ICEBERG
       PARTITIONED BY (
-        bucket(32, original_id),
+        bucket(32, node_id),
         name
       )
     """)
@@ -135,14 +138,17 @@ object CreateIcebergTables {
     println("Creating edge_static_props table...")
     spark.sql(s"""
       CREATE TABLE IF NOT EXISTS $dbName.edge_static_props (
-        edge_id        BIGINT,
-        static_props   MAP<STRING, STRING>,
+        property_id    BIGINT,
+        edge_id        STRING,
+        name           STRING,
+        value          STRING,
         from           TIMESTAMP,
         to             TIMESTAMP,
         created_at     TIMESTAMP
       ) USING ICEBERG
       PARTITIONED BY (
-        bucket(32, edge_id)
+        bucket(32, edge_id),
+        name
       )
     """)
   }
@@ -151,8 +157,8 @@ object CreateIcebergTables {
     println("Creating edge_dynamic_props table...")
     spark.sql(s"""
       CREATE TABLE IF NOT EXISTS $dbName.edge_dynamic_props (
-        dynamic_edge_id BIGINT,
-        edge_id         BIGINT,
+        property_id     BIGINT,
+        edge_id         STRING,
         name            STRING,
         value           STRING,
         from            TIMESTAMP,
