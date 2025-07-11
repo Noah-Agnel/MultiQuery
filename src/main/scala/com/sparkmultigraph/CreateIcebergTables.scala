@@ -138,7 +138,7 @@ object CreateIcebergTables {
           numeric_values  ARRAY<DOUBLE>,
           datetime_values ARRAY<TIMESTAMP>,
           from            TIMESTAMP,
-          to              TIMESTAMP
+          to              TIMESTAMP,
           created_at      TIMESTAMP
         ) USING ICEBERG
         PARTITIONED BY (
