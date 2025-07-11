@@ -1,6 +1,7 @@
 package com.sparkmultigraph
 import  org.apache.spark.sql.SparkSession
-
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.DataFrame
 
 
 object CreateIcebergTables {
@@ -58,7 +59,7 @@ object CreateIcebergTables {
           edge_1_2_types    MAP<INT, INT>,
           edge_2_1_types    MAP<INT, INT>,
           edge_bi_types     MAP<INT, INT>,
-          created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
+          created_at        TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (pair_id)
     """)
@@ -73,7 +74,7 @@ object CreateIcebergTables {
           pair_id           BIGINT NOT NULL,
           source_node_id    STRING NOT NULL,
           target_node_id    STRING NOT NULL,
-          created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
+          created_at        TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
           pair_id,
@@ -92,7 +93,7 @@ object CreateIcebergTables {
           pair_id           BIGINT NOT NULL,
           nodes_match_id    BIGINT NOT NULL,
           edge_type         STRING NOT NULL,
-          created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
+          created_at        TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
           pair_id,
@@ -115,7 +116,7 @@ object CreateIcebergTables {
           string_values   ARRAY<STRING>,
           numeric_values  ARRAY<DOUBLE>,
           datetime_values ARRAY<TIMESTAMP>,
-          created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+          created_at      TIMESTAMP NOT NULL,
           is_active       BOOLEAN NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
@@ -142,7 +143,7 @@ object CreateIcebergTables {
           datetime_values ARRAY<TIMESTAMP>,
           from            TIMESTAMP,
           to              TIMESTAMP,
-          created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
+          created_at      TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
           node_id,
@@ -166,7 +167,7 @@ object CreateIcebergTables {
           string_values   ARRAY<STRING>,
           numeric_values  ARRAY<DOUBLE>,
           datetime_values ARRAY<TIMESTAMP>,
-          created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
+          created_at      TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
           edge_id,
@@ -191,7 +192,7 @@ object CreateIcebergTables {
           datetime_values ARRAY<TIMESTAMP>,
           from            TIMESTAMP,
           to              TIMESTAMP,
-          created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
+          created_at      TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
           edge_id,
