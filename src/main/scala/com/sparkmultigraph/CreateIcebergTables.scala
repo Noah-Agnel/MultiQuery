@@ -48,20 +48,19 @@ object CreateIcebergTables {
   
   private def createNodeLabelPairTable(spark: SparkSession, dbName: String): Unit = {
     println("Creating node_label_pair table...")
-    spark.sql(s"""
-      CREATE TABLE IF NOT EXISTS $dbName.node_label_pair (
-        pair_id           BIGINT,
-        pair_hash         STRING,
-        src_labels        ARRAY<INT>,
-        dst_labels        ARRAY<INT>,
-        edge_1_2_types    MAP<INT, INT>,
-        edge_2_1_types    MAP<INT, INT>,
-        edge_bi_types     MAP<INT, INT>,
-        created_at        TIMESTAMP
-      ) USING ICEBERG
-      PARTITIONED BY (
-        bucket(32, pair_id)
-      )
+    spark.sql(
+      s"""
+        CREATE TABLE IF NOT EXISTS $dbName.node_label_pair (
+          pair_id           BIGINT NOT NULL,
+          pair_hash         STRING NOT NULL,
+          src_labels        ARRAY<INT>,
+          dst_labels        ARRAY<INT>,
+          edge_1_2_types    MAP<INT, INT>,
+          edge_2_1_types    MAP<INT, INT>,
+          edge_bi_types     MAP<INT, INT>,
+          created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
+        ) USING ICEBERG
+        PARTITIONED BY (pair_id)
     """)
   }
   
@@ -70,14 +69,16 @@ object CreateIcebergTables {
     spark.sql(
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.node_pair_matches (
-          nodes_match_id    BIGINT,
-          pair_id           BIGINT,
-          source_node_id    BIGINT,
-          target_node_id    BIGINT,
-          created_at        TIMESTAMP
+          nodes_match_id    BIGINT NOT NULL,
+          pair_id           BIGINT NOT NULL,
+          source_node_id    STRING NOT NULL,
+          target_node_id    STRING NOT NULL,
+          created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
         ) USING ICEBERG
         PARTITIONED BY (
-          bucket(32, pair_id)
+          pair_id,
+          source_node_id,
+          target_node_id
         )
       """)
   }
@@ -87,13 +88,15 @@ object CreateIcebergTables {
     spark.sql(
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.edges_matches (
-          edge_match_id     BIGINT,
-          nodes_match_id    BIGINT,
-          edge_id           BIGINT,
-          created_at        TIMESTAMP
+          edge_id           STRING NOT NULL,
+          pair_id           BIGINT NOT NULL,
+          nodes_match_id    BIGINT NOT NULL,
+          edge_type         STRING NOT NULL,
+          created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
         ) USING ICEBERG
         PARTITIONED BY (
-          bucket(32, nodes_match_id)
+          pair_id,
+          nodes_match_id
         )
       """)
   }
@@ -103,20 +106,20 @@ object CreateIcebergTables {
     spark.sql(
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.node_static_props (
-          property_id     BIGINT,
-          node_id         STRING,
-          property_name   STRING,
+          snproperty_id   BIGINT NOT NULL,
+          node_id         STRING NOT NULL,
+          property_name   STRING NOT NULL,
           string_value    STRING,
           numeric_value   DOUBLE,
           datetime_value  TIMESTAMP,
           string_values   ARRAY<STRING>,
           numeric_values  ARRAY<DOUBLE>,
           datetime_values ARRAY<TIMESTAMP>,
-          created_at      TIMESTAMP,
-          is_active       BOOLEAN
+          created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+          is_active       BOOLEAN NOT NULL DEFAULT TRUE
         ) USING ICEBERG
         PARTITIONED BY (
-          bucket(32, node_id),
+          node_id,
           property_name
         )
         """
@@ -128,9 +131,9 @@ object CreateIcebergTables {
     spark.sql(
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.node_dynamic_props (
-          property_id     BIGINT,
-          node_id         STRING,
-          property_name   STRING,
+          dnproperty_id   BIGINT NOT NULL,
+          node_id         STRING NOT NULL,
+          property_name   STRING NOT NULL,
           string_value    STRING,
           numeric_value   DOUBLE,
           datetime_value  TIMESTAMP,
@@ -139,10 +142,10 @@ object CreateIcebergTables {
           datetime_values ARRAY<TIMESTAMP>,
           from            TIMESTAMP,
           to              TIMESTAMP,
-          created_at      TIMESTAMP
+          created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
         ) USING ICEBERG
         PARTITIONED BY (
-          bucket(32, node_id),
+          node_id,
           property_name
         )
       """
@@ -154,19 +157,19 @@ object CreateIcebergTables {
     spark.sql(
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.edge_static_props (
-          property_id     BIGINT,
-          edge_id         STRING,
-          property_name   STRING,
+          seproperty_id   BIGINT NOT NULL,
+          edge_id         STRING NOT NULL,
+          property_name   STRING NOT NULL,
           string_value    STRING,
           numeric_value   DOUBLE,
           datetime_value  TIMESTAMP,
           string_values   ARRAY<STRING>,
           numeric_values  ARRAY<DOUBLE>,
           datetime_values ARRAY<TIMESTAMP>,
-          created_at      TIMESTAMP
+          created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
         ) USING ICEBERG
         PARTITIONED BY (
-          bucket(32, edge_id),
+          edge_id,
           property_name
         )
       """)
@@ -177,9 +180,9 @@ object CreateIcebergTables {
     spark.sql(
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.edge_dynamic_props (
-          property_id     BIGINT,
-          edge_id         STRING,
-          property_name   STRING,
+          deproperty_id   BIGINT NOT NULL,
+          edge_id         STRING NOT NULL,
+          property_name   STRING NOT NULL,
           string_value    STRING,
           numeric_value   DOUBLE,
           datetime_value  TIMESTAMP,
@@ -188,10 +191,10 @@ object CreateIcebergTables {
           datetime_values ARRAY<TIMESTAMP>,
           from            TIMESTAMP,
           to              TIMESTAMP,
-          created_at      TIMESTAMP
+          created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
         ) USING ICEBERG
         PARTITIONED BY (
-          bucket(32, edge_id),
+          edge_id,
           property_name
         )
       """
