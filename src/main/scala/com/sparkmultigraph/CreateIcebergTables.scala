@@ -67,107 +67,134 @@ object CreateIcebergTables {
   
   private def createNodePairMatchesTable(spark: SparkSession, dbName: String): Unit = {
     println("Creating node_pair_matches table...")
-    spark.sql(s"""
-      CREATE TABLE IF NOT EXISTS $dbName.node_pair_matches (
-        nodes_match_id    BIGINT,
-        pair_id           BIGINT,
-        source_node_id    BIGINT,
-        target_node_id    BIGINT,
-        created_at        TIMESTAMP
-      ) USING ICEBERG
-      PARTITIONED BY (
-        bucket(32, pair_id)
-      )
-    """)
+    spark.sql(
+      s"""
+        CREATE TABLE IF NOT EXISTS $dbName.node_pair_matches (
+          nodes_match_id    BIGINT,
+          pair_id           BIGINT,
+          source_node_id    BIGINT,
+          target_node_id    BIGINT,
+          created_at        TIMESTAMP
+        ) USING ICEBERG
+        PARTITIONED BY (
+          bucket(32, pair_id)
+        )
+      """)
   }
   
   private def createMatchEdgesTable(spark: SparkSession, dbName: String): Unit = {
     println("Creating match_edges table...")
-    spark.sql(s"""
-      CREATE TABLE IF NOT EXISTS $dbName.edges_matches (
-        edge_match_id     BIGINT,
-        nodes_match_id    BIGINT,
-        edge_id           BIGINT,
-        created_at        TIMESTAMP
-      ) USING ICEBERG
-      PARTITIONED BY (
-        bucket(32, nodes_match_id)
-      )
-    """)
+    spark.sql(
+      s"""
+        CREATE TABLE IF NOT EXISTS $dbName.edges_matches (
+          edge_match_id     BIGINT,
+          nodes_match_id    BIGINT,
+          edge_id           BIGINT,
+          created_at        TIMESTAMP
+        ) USING ICEBERG
+        PARTITIONED BY (
+          bucket(32, nodes_match_id)
+        )
+      """)
   }
   
   private def createNodeStaticPropsTable(spark: SparkSession, dbName: String): Unit = {
     println("Creating node_static_props table...")
-    spark.sql(s"""
-      CREATE TABLE IF NOT EXISTS $dbName.node_static_props (
-        property_id    BIGINT,
-        node_id        STRING,
-        name           STRING,
-        value          STRING,
-        created_at     TIMESTAMP,
-        is_active      BOOLEAN,
-        is_deleted     BOOLEAN
-      ) USING ICEBERG
-      PARTITIONED BY (
-        bucket(32, node_id),
-        name
-      )
-    """)
+    spark.sql(
+      s"""
+        CREATE TABLE IF NOT EXISTS $dbName.node_static_props (
+          property_id     BIGINT,
+          node_id         STRING,
+          property_name   STRING,
+          string_value    STRING,
+          numeric_value   DOUBLE,
+          datetime_value  TIMESTAMP,
+          string_values   ARRAY<STRING>,
+          numeric_values  ARRAY<DOUBLE>,
+          datetime_values ARRAY<TIMESTAMP>,
+          created_at      TIMESTAMP,
+          is_active       BOOLEAN
+        ) USING ICEBERG
+        PARTITIONED BY (
+          bucket(32, node_id),
+          property_name
+        )
+        """
+    )
   }
   
   private def createNodeDynamicPropsTable(spark: SparkSession, dbName: String): Unit = {
     println("Creating node_dynamic_props table...")
-    spark.sql(s"""
-      CREATE TABLE IF NOT EXISTS $dbName.node_dynamic_props (
-        property_id    BIGINT,
-        node_id        STRING,
-        name           STRING,
-        value          STRING,
-        from           TIMESTAMP,
-        to             TIMESTAMP,
-        created_at     TIMESTAMP
-      ) USING ICEBERG
-      PARTITIONED BY (
-        bucket(32, node_id),
-        name
-      )
-    """)
+    spark.sql(
+      s"""
+        CREATE TABLE IF NOT EXISTS $dbName.node_dynamic_props (
+          property_id     BIGINT,
+          node_id         STRING,
+          property_name   STRING,
+          string_value    STRING,
+          numeric_value   DOUBLE,
+          datetime_value  TIMESTAMP,
+          string_values   ARRAY<STRING>,
+          numeric_values  ARRAY<DOUBLE>,
+          datetime_values ARRAY<TIMESTAMP>,
+          from            TIMESTAMP,
+          to              TIMESTAMP
+          created_at      TIMESTAMP
+        ) USING ICEBERG
+        PARTITIONED BY (
+          bucket(32, node_id),
+          property_name
+        )
+      """
+    )
   }
   
   private def createEdgeStaticPropsTable(spark: SparkSession, dbName: String): Unit = {
     println("Creating edge_static_props table...")
-    spark.sql(s"""
-      CREATE TABLE IF NOT EXISTS $dbName.edge_static_props (
-        property_id    BIGINT,
-        edge_id        STRING,
-        name           STRING,
-        value          STRING,
-        from           TIMESTAMP,
-        to             TIMESTAMP,
-        created_at     TIMESTAMP
-      ) USING ICEBERG
-      PARTITIONED BY (
-        bucket(32, edge_id),
-        name
-      )
-    """)
+    spark.sql(
+      s"""
+        CREATE TABLE IF NOT EXISTS $dbName.edge_static_props (
+          property_id     BIGINT,
+          edge_id         STRING,
+          property_name   STRING,
+          string_value    STRING,
+          numeric_value   DOUBLE,
+          datetime_value  TIMESTAMP,
+          string_values   ARRAY<STRING>,
+          numeric_values  ARRAY<DOUBLE>,
+          datetime_values ARRAY<TIMESTAMP>,
+          created_at      TIMESTAMP
+        ) USING ICEBERG
+        PARTITIONED BY (
+          bucket(32, edge_id),
+          property_name
+        )
+      """)
   }
   
   private def createEdgeDynamicPropsTable(spark: SparkSession, dbName: String): Unit = {
     println("Creating edge_dynamic_props table...")
-    spark.sql(s"""
-      CREATE TABLE IF NOT EXISTS $dbName.edge_dynamic_props (
-        property_id     BIGINT,
-        edge_id         STRING,
-        name            STRING,
-        value           STRING,
-        from            TIMESTAMP,
-        to              TIMESTAMP
-      ) USING ICEBERG
-      PARTITIONED BY (
-        bucket(32, edge_id),
-        name
-      )
-    """)
+    spark.sql(
+      s"""
+        CREATE TABLE IF NOT EXISTS $dbName.edge_dynamic_props (
+          property_id     BIGINT,
+          edge_id         STRING,
+          property_name   STRING,
+          string_value    STRING,
+          numeric_value   DOUBLE,
+          datetime_value  TIMESTAMP,
+          string_values   ARRAY<STRING>,
+          numeric_values  ARRAY<DOUBLE>,
+          datetime_values ARRAY<TIMESTAMP>,
+          from            TIMESTAMP,
+          to              TIMESTAMP,
+          created_at      TIMESTAMP
+        ) USING ICEBERG
+        PARTITIONED BY (
+          bucket(32, edge_id),
+          property_name
+        )
+      """
+    )
   }
 } 
