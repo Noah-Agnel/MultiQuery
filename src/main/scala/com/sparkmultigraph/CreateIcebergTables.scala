@@ -116,7 +116,7 @@ object CreateIcebergTables {
           numeric_values  ARRAY<DOUBLE>,
           datetime_values ARRAY<TIMESTAMP>,
           created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
-          is_active       BOOLEAN NOT NULL DEFAULT TRUE
+          is_active       BOOLEAN NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
           node_id,
