@@ -10,19 +10,18 @@ import org.apache.spark.sql.expressions.Window
 
 
 
-// =======================================================================
-// CONSTANTS
-// =======================================================================
-val SPK_HD_EP  :String   = "spark.hadoop.fs.s3a.endpoint"
-val SPK_HD_AK  :String   = "spark.hadoop.fs.s3a.access.key"
-val SPK_HD_SK  :String   = "spark.hadoop.fs.s3a.secret.key"
-val SPK_HD_PS  :String   = "spark.hadoop.fs.s3a.path.style.access"
-val SPK_HD_IMPL:String   = "spark.hadoop.fs.s3a.impl"
-val SPK_HD_SSL :String   = "spark.hadoop.fs.s3a.connection.ssl.enabled"
-// =======================================================================
-
-
 object DataInsertionInTable {
+    // ========================================================================================================================
+    // CONSTANTS
+    // ========================================================================================================================
+    val SPK_HD_EP  :String   = "spark.hadoop.fs.s3a.endpoint"
+    val SPK_HD_AK  :String   = "spark.hadoop.fs.s3a.access.key"
+    val SPK_HD_SK  :String   = "spark.hadoop.fs.s3a.secret.key"
+    val SPK_HD_PS  :String   = "spark.hadoop.fs.s3a.path.style.access"
+    val SPK_HD_IMPL:String   = "spark.hadoop.fs.s3a.impl"
+    val SPK_HD_SSL :String   = "spark.hadoop.fs.s3a.connection.ssl.enabled"
+
+
     // ========================================================================================================================
     // MAIN FUNCTION
     // ========================================================================================================================
@@ -252,14 +251,14 @@ object DataInsertionInTable {
             }
         
             baseDF.select(
-            col("node_id"),
-            col("is_active"),
-            col("property_name"),
-            col("string_value"),
-            col("numeric_value"),
-            col("datetime_value"),
-            col("string_values"),
-            col("numeric_values"),
+            col("node_id"        ),
+            col("is_active"      ),
+            col("property_name"  ),
+            col("string_value"   ),
+            col("numeric_value"  ),
+            col("datetime_value" ),
+            col("string_values"  ),
+            col("numeric_values" ),
             col("datetime_values")
             )
         }}
