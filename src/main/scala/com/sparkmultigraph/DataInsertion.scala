@@ -47,9 +47,9 @@ object DataInsertionInTable {
            .getOrCreate();
 
         // Nodes and Edges dataframe creation
-        val filesMap = pathsReadingfromMinio("terrorismnetworkfile")
-        val nodesDF  = elementsDataframeCreation(filesMap("nodes" ))
-        var edgesDF  = elementsDataframeCreation(filesMap("edges" ))  
+        val filesMap = pathsReadingfromMinio(spark, "terrorismnetworkfile")
+        val nodesDF  = elementsDataframeCreation(spark, filesMap("nodes" ))
+        var edgesDF  = elementsDataframeCreation(spark, filesMap("edges" ))  
 
         // Static nodes properties
         // TODO: I'm a test, so i need to be completed
@@ -61,7 +61,7 @@ object DataInsertionInTable {
             if (!fieldDFs.isEmpty){
                 println(ds_type)
                 val maxIdOption = spark.sql("SELECT MAX(snproperty_id) as max_id FROM iceberg.terrorism.node_static_props").head()
-                val maxId       = Option(row.get(0)).map(_.asInstanceOf[Long]).getOrElse(0L)
+                val maxId       = Option(maxIdOption).map(_.asInstanceOf[Long]).getOrElse(0L)
                 val startId     = maxId + 1
                 fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
                 fieldDFs        = fieldDFs
@@ -94,7 +94,7 @@ object DataInsertionInTable {
     // ========================================================================================================================
     // 1. PATH READING FROM MINIO
     // ========================================================================================================================
-    def pathsReadingfromMinio(bucketName:String): mutable.Map[String, mutable.Map[String, Array[String]]] = {
+    def pathsReadingfromMinio(spark:SparkSession, bucketName:String): mutable.Map[String, mutable.Map[String, Array[String]]] = {
         // Filesystem configuration
         val conf = spark.sparkContext.hadoopConfiguration
         val path = new Path(s"s3a://${bucketName}/")
@@ -131,6 +131,7 @@ object DataInsertionInTable {
     // 2. ELEMENTS DATAFRAME CREATION
     // ========================================================================================================================
     def elementsDataframeCreation(
+        spark:SparkSession,
         elements: mutable.Map[String, Array[String]]
     ): mutable.Map[String, mutable.Map[String, Dataset[Row]]] = { 
 
