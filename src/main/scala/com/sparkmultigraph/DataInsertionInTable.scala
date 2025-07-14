@@ -1,3 +1,4 @@
+package com.sparkmultigraph
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
 import org.apache.hadoop.fs.{FileSystem, Path}
