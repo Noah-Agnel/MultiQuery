@@ -62,7 +62,7 @@ object DataInsertionInTable {
             if (!fieldDFs.isEmpty){
                 println(ds_type)
                 val maxIdOption = spark.sql("SELECT MAX(snproperty_id) as max_id FROM iceberg.terrorism.node_static_props").head()
-                val maxId       = Option(maxIdOption).map(_.asInstanceOf[Long]).getOrElse(0L)
+                val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
                 val startId     = maxId + 1
                 fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
                 fieldDFs        = fieldDFs
