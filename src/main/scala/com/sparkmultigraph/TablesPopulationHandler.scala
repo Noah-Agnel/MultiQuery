@@ -139,7 +139,7 @@ object TablesPopulationHandler {
         edgesDS    :Dataset[Row]
     ):Dataset[Row] = 
     {
-        val nodesEdgesMatrix = edges
+        val nodesEdgesMatrix = edgesDS
            .join(nodesLabels.alias("src"), col(SRID) === col("src.node_id"))
            .join(nodesLabels.alias("tgt"), col(TAID) === col("tgt.node_id"))
            .select(
