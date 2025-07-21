@@ -9,7 +9,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.functions._
 
 
-class ReaderWriterHandler {
+object ReaderWriterHandler {
     // ===========================================================================================================================
     // PATH READING FROM MINIO
     // ===========================================================================================================================

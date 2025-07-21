@@ -11,7 +11,7 @@ import  org.apache.spark.sql.functions._
 import  org.apache.spark.sql.expressions.Window
 
 
-class TablesPopulationHandler {
+object TablesPopulationHandler {
     // ========================================================================================================================
     // CONSTANTS
     // ========================================================================================================================

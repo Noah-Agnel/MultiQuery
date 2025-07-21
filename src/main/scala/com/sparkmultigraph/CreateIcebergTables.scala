@@ -2,7 +2,7 @@ package com.sparkmultigraph
 import  org.apache.spark.sql.SparkSession
 import  org.apache.spark.sql.functions._
 import  org.apache.spark.sql.DataFrame
-import  com.sparkconfiguration.SparkHandler
+import  com.sparkconfiguration.SparkHandler._
 
 
 object CreateIcebergTables {
@@ -15,7 +15,7 @@ object CreateIcebergTables {
     println(s"Creating Iceberg tables in database: $dbName")
     
     // Create Spark Session with Iceberg support
-    val spark = SparkHandler.spConfig("Iceberg Tables Creation")
+    val spark = spConfig("Iceberg Tables Creation")
 
     try {
       // Create database if it doesn't exist

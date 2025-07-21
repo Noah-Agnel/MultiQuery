@@ -8,7 +8,7 @@ import  org.apache.spark.sql.Column
 import  org.apache.spark.sql.Row
 import  org.apache.spark.sql.functions._
 import  org.apache.spark.sql.expressions.Window
-import  com.sparkconfiguration.SparkHandler
+import  com.sparkconfiguration.SparkHandler._
 import  com.sparkmultigraph.TablesPopulationHandler._
 import  com.sparkmultigraph.ReaderWriterHandler._
 
@@ -28,7 +28,7 @@ object DataInsertionInTable {
         val fileWarehouseName  = args(1)
         
         // Create Spark Session with Iceberg support
-        val spark = SparkHandler.spConfig("Data Insertion in Table")
+        val spark              = spConfig("Data Insertion in Table")
 
         // Nodes and Edges data reading
         val filesMap           = pathsReadingFromMinio(spark, fileWarehouseName)

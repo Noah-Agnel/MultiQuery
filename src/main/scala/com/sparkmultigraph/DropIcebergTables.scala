@@ -1,6 +1,6 @@
 package com.sparkmultigraph
 import  org.apache.spark.sql.SparkSession
-import  com.sparkconfiguration.SparkHandler
+import  com.sparkconfiguration.SparkHandler._
 
 
 
@@ -14,7 +14,7 @@ object DropIcebergTables {
     println(s"Dropping Iceberg tables in database: $dbName")
     
     // Create Spark Session with Iceberg support
-    val spark = SparkHandler.spConfig("Drop Iceberg Tables")
+    val spark  = spConfig("Drop Iceberg Tables")
 
     try {
       // Check if database exists

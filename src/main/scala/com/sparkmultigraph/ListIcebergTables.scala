@@ -1,6 +1,6 @@
 package com.sparkmultigraph
 import  org.apache.spark.sql.SparkSession
-import  com.sparkconfiguration.SparkHandler
+import  com.sparkconfiguration.SparkHandler._
 
 
 object ListIcebergTables { 
@@ -13,7 +13,7 @@ object ListIcebergTables {
     println(s"Listing Iceberg tables in database: $dbName")
     
     // Create Spark Session with Iceberg support
-    val spark = SparkHandler.spConfig("List Iceberg Tables")
+    val spark  = spConfig("List Iceberg Tables")
 
 
     try {
