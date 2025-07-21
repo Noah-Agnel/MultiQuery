@@ -1,5 +1,7 @@
 package com.sparkmultigraph
 import  org.apache.spark.sql.SparkSession
+import  com.sparkconfiguration.SparkHandler
+
 
 object ListIcebergTables { 
   // Main function
@@ -11,9 +13,7 @@ object ListIcebergTables {
     println(s"Listing Iceberg tables in database: $dbName")
     
     // Create Spark Session with Iceberg support
-    val spark = SparkSession.builder()
-      .appName("Iceberg Tables Listing")
-      .getOrCreate()
+    val spark = SparkHandler.spConfig("List Iceberg Tables")
 
 
     try {
@@ -56,20 +56,24 @@ object ListIcebergTables {
             val count = spark.sql(s"SELECT COUNT(*) as row_count FROM $dbName.$tableName").collect()
             println(s"Row count: ${count(0).getLong(0)}")
             
-          } catch {
+          } 
+          catch {
             case e: Exception =>
-              println(s"Error getting details for table $tableName: ${e.getMessage}")
+                println(s"Error getting details for table $tableName: ${e.getMessage}")
           }
         }
-      } else {
-        println(s"No tables found in database '$dbName'")
+      } 
+      else {
+         println(s"No tables found in database '$dbName'")
       }
       
-    } catch {
-      case e: Exception =>
-        println(s"Error listing tables: ${e.getMessage}")
-        e.printStackTrace()
-    } finally {
+    } 
+    catch {
+       case e: Exception =>
+         println(s"Error listing tables: ${e.getMessage}")
+         e.printStackTrace()
+    } 
+    finally {
       spark.stop()
     }
   }

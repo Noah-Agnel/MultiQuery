@@ -1,7 +1,8 @@
 package com.sparkmultigraph
 import  org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.DataFrame
+import  org.apache.spark.sql.functions._
+import  org.apache.spark.sql.DataFrame
+import  com.sparkconfiguration.SparkHandler
 
 
 object CreateIcebergTables {
@@ -14,9 +15,7 @@ object CreateIcebergTables {
     println(s"Creating Iceberg tables in database: $dbName")
     
     // Create Spark Session with Iceberg support
-    val spark = SparkSession.builder()
-      .appName("Iceberg Tables Creation")
-      .getOrCreate()
+    val spark = SparkHandler.spConfig("Iceberg Tables Creation")
 
     try {
       // Create database if it doesn't exist
@@ -52,16 +51,17 @@ object CreateIcebergTables {
     spark.sql(
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.node_label_pair (
-          pair_id           BIGINT NOT NULL,
-          pair_hash         STRING NOT NULL,
+          pair_id           BIGINT NOT NULL,          
           src_labels        ARRAY<INT>,
           dst_labels        ARRAY<INT>,
-          edge_1_2_types    MAP<INT, INT>,
-          edge_2_1_types    MAP<INT, INT>,
-          edge_bi_types     MAP<INT, INT>,
+          edge_1_2_types    MAP<STRING, INT>,
+          edge_2_1_types    MAP<STRING, INT>,
+          edge_bi_types     MAP<STRING, INT>,
           created_at        TIMESTAMP NOT NULL
         ) USING ICEBERG
-        PARTITIONED BY (pair_id)
+        PARTITIONED BY (
+          bucket(16, pair_id)
+        )
     """)
   }
   
@@ -77,9 +77,7 @@ object CreateIcebergTables {
           created_at        TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
-          pair_id,
-          source_node_id,
-          target_node_id
+          bucket(16, pair_id)
         )
       """)
   }
@@ -96,8 +94,7 @@ object CreateIcebergTables {
           created_at        TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
-          pair_id,
-          nodes_match_id
+          bucket(16, pair_id)
         )
       """)
   }
@@ -120,8 +117,7 @@ object CreateIcebergTables {
           is_active       BOOLEAN NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
-          node_id,
-          property_name
+          bucket(16, node_id)
         )
         """
     )
@@ -146,8 +142,7 @@ object CreateIcebergTables {
           created_at      TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
-          node_id,
-          property_name
+          bucket(16, node_id)
         )
       """
     )
@@ -170,8 +165,7 @@ object CreateIcebergTables {
           created_at      TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
-          edge_id,
-          property_name
+          bucket(16, edge_id)
         )
       """)
   }
@@ -195,8 +189,7 @@ object CreateIcebergTables {
           created_at      TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
-          edge_id,
-          property_name
+          bucket(16, edge_id)
         )
       """
     )
