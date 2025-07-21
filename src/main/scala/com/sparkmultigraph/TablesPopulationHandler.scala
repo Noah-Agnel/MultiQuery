@@ -139,7 +139,7 @@ object TablesPopulationHandler {
         edgesDS    :Dataset[Row]
     ):Dataset[Row] = 
     {
-        val nodesEdgesMatrix = edgesDS
+        var nodesEdgesMatrix = edgesDS
            .join(nodesLabels.alias("src"), col(SRID) === col("src.node_id"))
            .join(nodesLabels.alias("tgt"), col(TAID) === col("tgt.node_id"))
            .select(
@@ -271,7 +271,7 @@ object TablesPopulationHandler {
             .select(
                 col(NMID),
                 col(PAID), 
-                inline(arrays_zip(col(colNameType), col(colNameId))),
+                explode(arrays_zip(col(colNameType), col(colNameId))),
                 col(CRAT)
             )
             .withColumnRenamed(colNameId  , ELID)
