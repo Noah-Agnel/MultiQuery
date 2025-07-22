@@ -346,7 +346,8 @@ object TablesPopulationHandler {
     **/
     def nodeStaticPropsTablePopulation(
         nodesDS: mutable.Map[String, Dataset[Row]],
-        dbName : String
+        dbName : String,
+        spark  : SparkSession
     ){
         nodesDS.foreach{ case (ds_type, ds) => {
             val staticPropsSchema = ds.schema("static_props").dataType.asInstanceOf[StructType]
