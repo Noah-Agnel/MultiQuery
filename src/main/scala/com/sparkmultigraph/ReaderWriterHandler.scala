@@ -98,10 +98,6 @@ object ReaderWriterHandler {
                 if (!elementsDF.contains(propType))
                     elementsDF += (propType -> mutable.Map.empty)
                 
-                // 3. WE ADD THE NODE TYPE IF NOT EXIST
-                if (!elementsDF(propType).contains(mapKey))
-                    elementsDF(propType) += (mapKey -> null)
-                    
                 // 4. DATAFRAME READING FROM MINIO
                 val elementDF = spark.read.option("multiline","true").json(path)
                 
