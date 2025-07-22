@@ -70,7 +70,7 @@ object CreateIcebergTables {
     spark.sql(
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.node_pair_matches (
-          nodes_match_id    BIGINT NOT NULL,
+          nodes_match_id    STRING NOT NULL,
           pair_id           BIGINT NOT NULL,
           source_node_id    STRING NOT NULL,
           target_node_id    STRING NOT NULL,
@@ -89,7 +89,7 @@ object CreateIcebergTables {
         CREATE TABLE IF NOT EXISTS $dbName.edges_matches (
           edge_id           STRING NOT NULL,
           pair_id           BIGINT NOT NULL,
-          nodes_match_id    BIGINT NOT NULL,
+          nodes_match_id    STRING NOT NULL,
           edge_type         STRING NOT NULL,
           created_at        TIMESTAMP NOT NULL
         ) USING ICEBERG

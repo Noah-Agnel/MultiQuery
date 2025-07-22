@@ -174,7 +174,7 @@ object TablesPopulationHandler {
                 collect_list(when(col(ELOU).isNotNull, col(ELOU))).alias(EOLS),
                 collect_list(when(col(EIOU).isNotNull, col(EIOU))).alias(EOIL)
             )
-            .withColumn(CRAT, date_format(current_timestamp(), "yyyy-MM-dd HH:mm:ss"))
+            .withColumn(CRAT, current_timestamp())
 
         // WE ARE ADDING THE ID BASED ON THE NODES AND EDGES TYPE
         val windowSpec   = Window.orderBy(MILB, MALB, EILS, EOLS)
