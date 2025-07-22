@@ -48,6 +48,7 @@ object TablesPopulationHandler {
     val EBIT: String = "edge_bi_types"
     val PRNM: String = "property_name"
     val PRVL: String = "property_value"
+    val SNID: String = "snproperty_id"
    
     
     // ========================================================================================================================
@@ -279,6 +280,7 @@ object TablesPopulationHandler {
 
         return edges_matches_x
     }
+
     /**
      * Generation of the tables that contains the id of the edges of each pair, the pair id, 
      * and the node matching id.
@@ -300,7 +302,7 @@ object TablesPopulationHandler {
     // ========================================================================================================================
     // STATIC NODE PROPERTIES DATAFRAME CREATION
     // ========================================================================================================================
-    def staticNodePropsDSCreation(dset:Dataset[Row], fieldMappings: Array[(String, String)]): Dataset[Row] = {
+    def componentOfNodePropsDSCreation(dset:Dataset[Row], fieldMappings: Array[(String, String)]): Dataset[Row] = {
         val fieldDfs   = fieldMappings.map { case (fieldName, fieldType) => {
             var baseDF = dset.select(
                 col(NDID),
@@ -331,8 +333,55 @@ object TablesPopulationHandler {
             col("numeric_values" ),
             col("datetime_values")
             )
-        }}
-
+        }
         return fieldDfs.reduce(_ union _).orderBy(asc(NDID))
+    }
+
+
+    /**
+     * Populates the node static properties table.
+     * 
+     * @param  nodesDS the Dataset[Row] containing the nodes
+     * @return the Dataset[Row] with the node static properties
+    **/
+    def nodeStaticPropsTablePopulation(
+        nodesDS:Dataset[Row],
+        dbName :String
+    ){
+        nodesDF.foreach{ case (ds_type, ds) => {
+            val staticPropsSchema = ds.schema("static_props").dataType.asInstanceOf[StructType]
+            val fieldMappings     = fieldMappingCreation(ds, "static_props")
+
+            var fieldDFs = componentOfNodePropsDSCreation(ds, fieldMappings)
+            if (!fieldDFs.isEmpty){
+                val maxIdOption = spark.sql(s"SELECT MAX($SNID) as max_id FROM $dbName.node_static_props").head()
+                val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
+                val startId     = maxId + 1
+                fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
+                fieldDFs        = fieldDFs
+                    .withColumn(SNID, (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
+                    .withColumn(CRAT, current_timestamp())
+                    .select(
+                       SNID,
+                       NDID, 
+                       "property_name",
+                       "string_value",
+                       "numeric_value",
+                       "datetime_value",
+                       "string_values",
+                       "numeric_values", 
+                       "datetime_values",
+                       CRAT,
+                       ISAC
+                    )
+
+                // Saving the data into the table
+                fieldDFs.write
+                   .mode("append")
+                   .insertInto(s"$dbName.node_static_props")
+
+                println(s"Inserted ${fieldDFs.count()} rows into $dbName.node_static_props")  
+            }  
+        }}
     }
 }   

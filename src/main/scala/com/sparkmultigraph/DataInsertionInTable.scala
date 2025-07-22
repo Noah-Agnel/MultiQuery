@@ -66,45 +66,8 @@ object DataInsertionInTable {
           .mode("append")
           .insertInto(s"$dbName.edges_matches")
         
+        nodeStaticPropsTablePopulation(nodesDF("static"), dbName)
 
-        // Static nodes properties
-        // TODO: I'm a test, so i need to be completed
-        /*
-        nodesDF("static").foreach{ case (ds_type, ds) => {
-            val staticPropsSchema = ds.schema("static_props").dataType.asInstanceOf[StructType]
-            val fieldMappings     = fieldMappingCreation(ds, "static_props")
-
-            var fieldDFs = staticNodePropsDSCreation(ds, fieldMappings)
-            if (!fieldDFs.isEmpty){
-                println(ds_type)
-                val maxIdOption = spark.sql("SELECT MAX(snproperty_id) as max_id FROM iceberg.terrorism.node_static_props").head()
-                val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
-                val startId     = maxId + 1
-                fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
-                fieldDFs        = fieldDFs
-                    .withColumn("snproperty_id", (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
-                    .withColumn("created_at", current_timestamp())
-                    .select(
-                       "snproperty_id",
-                       "node_id", 
-                       "property_name",
-                       "string_value",
-                       "numeric_value",
-                       "datetime_value",
-                       "string_values",
-                       "numeric_values", 
-                       "datetime_values",
-                       "created_at",
-                       "is_active"
-                    )
-                
-                fieldDFs.write
-                   .mode("append")
-                   .insertInto("terrorism.node_static_props")
-
-                println(s"Inserted ${fieldDFs.count()} rows into iceberg.terrorism.node_static_props")  
-            }  
-        }}
-        */
+        // TODO continue with edges
     }
 }
