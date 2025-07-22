@@ -22,8 +22,8 @@ object TablesPopulationHandler {
     val TNID: String = "target_node_id"
     val ELID: String = "edge_id"
     val LABL: String = "labels"
-    val SRLB: String = "source_labels"
-    val TALB: String = "target_labels"
+    val SRLB: String = "src_labels"
+    val TALB: String = "dst_labels"
     val ELTP: String = "edge_type"
     val CRAT: String = "created_at"
 
@@ -209,12 +209,14 @@ object TablesPopulationHandler {
             .dropDuplicates()
             .withColumn(E12T, arrayToFrequencyMap(col(EILS)))
             .withColumn(E21T, arrayToFrequencyMap(col(EOLS)))
+            .withColumn(EBIT, lit(Map.empty[String, Int]))
             .select(
                 col(PAID), 
                 col(MILB).as(SRLB),
                 col(MALB).as(TALB),
                 col(E12T),
                 col(E21T),
+                col(EBIT),
                 col(CRAT)
             )
             
