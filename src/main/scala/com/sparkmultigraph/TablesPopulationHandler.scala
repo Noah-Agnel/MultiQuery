@@ -209,7 +209,7 @@ object TablesPopulationHandler {
             .dropDuplicates()
             .withColumn(E12T, arrayToFrequencyMap(col(EILS)))
             .withColumn(E21T, arrayToFrequencyMap(col(EOLS)))
-            .withColumn(EBIT, lit(Map.empty[String, Int]))
+            .withColumn(EBIT, lit(null))
             .select(
                 col(PAID), 
                 col(MILB).as(SRLB),
