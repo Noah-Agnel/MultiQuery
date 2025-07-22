@@ -48,7 +48,7 @@ object TablesPopulationHandler {
     val EBIT: String = "edge_bi_types"
     val PRNM: String = "property_name"
     val PRVL: String = "property_value"
-    val SNID: String = "snproperty_id"
+    val SNPI: String = "snproperty_id"
    
     
     // ========================================================================================================================
@@ -345,24 +345,24 @@ object TablesPopulationHandler {
      * @return the Dataset[Row] with the node static properties
     **/
     def nodeStaticPropsTablePopulation(
-        nodesDS:Dataset[Row],
-        dbName :String
+        nodesDS: mutable.Map[String, Dataset[Row]],
+        dbName : String
     ){
-        nodesDF.foreach{ case (ds_type, ds) => {
+        nodesDS.foreach{ case (ds_type, ds) => {
             val staticPropsSchema = ds.schema("static_props").dataType.asInstanceOf[StructType]
             val fieldMappings     = fieldMappingCreation(ds, "static_props")
 
             var fieldDFs = componentOfNodePropsDSCreation(ds, fieldMappings)
             if (!fieldDFs.isEmpty){
-                val maxIdOption = spark.sql(s"SELECT MAX($SNID) as max_id FROM $dbName.node_static_props").head()
+                val maxIdOption = spark.sql(s"SELECT MAX($SNPI) as max_id FROM $dbName.node_static_props").head()
                 val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
                 val startId     = maxId + 1
                 fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
                 fieldDFs        = fieldDFs
-                    .withColumn(SNID, (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
+                    .withColumn(SNPI, (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
                     .withColumn(CRAT, current_timestamp())
                     .select(
-                       SNID,
+                       SNPI,
                        NDID, 
                        "property_name",
                        "string_value",
