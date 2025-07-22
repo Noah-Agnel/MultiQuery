@@ -52,10 +52,19 @@ object DataInsertionInTable {
         // Edges matches table creation
         val edgesMatchesTab    = matchEdgesPopulation(nodesEdgesMatrix)
 
-        // Print for debug
-        println(s"nodeLabelPairTab: ${nodeLabelPairTab.count()}")
-        println(s"nodePairMatchesTab: ${nodePairMatchesTab.count()}")
-        println(s"edgesMatchesTab: ${edgesMatchesTab.count()}")
+        // Saving tables data
+        nodeLabelPairTab
+          .write
+          .mode("append")
+          .insertInto(s"$dbName.node_label_pair")
+        nodePairMatchesTab
+          .write
+          .mode("append")
+          .insertInto(s"$dbName.node_pair_matches")
+        edgesMatchesTab
+          .write
+          .mode("append")
+          .insertInto(s"$dbName.edges_matches")
         
 
         // Static nodes properties
