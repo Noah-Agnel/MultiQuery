@@ -272,7 +272,7 @@ object TablesPopulationHandler {
             .select(
                 col("zipped." + colNameId).as(ELID),
                 col(PAID),
-                col
+                col(NMID),
                 col("zipped." + colNameType).as(ELTP),
                 col(CRAT)
             )
