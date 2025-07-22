@@ -266,8 +266,8 @@ object TablesPopulationHandler {
             .select(
                 col(NMID),
                 col(PAID),
-                explode(arrays_zip(col(colNameType), col(colNameId)))
-                    .alias("zipped")
+                explode(arrays_zip(col(colNameType), col(colNameId))).alias("zipped"),
+                col(CRAT)
             )
             .select(
                 col("zipped." + colNameId).as(ELID),
