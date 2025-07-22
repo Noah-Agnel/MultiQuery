@@ -52,8 +52,8 @@ object CreateIcebergTables {
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.node_label_pair (
           pair_id           BIGINT NOT NULL,          
-          src_labels        ARRAY<INT>,
-          dst_labels        ARRAY<INT>,
+          src_labels        ARRAY<STRING>,
+          dst_labels        ARRAY<STRING>,
           edge_1_2_types    MAP<STRING, INT>,
           edge_2_1_types    MAP<STRING, INT>,
           edge_bi_types     MAP<STRING, INT>,
