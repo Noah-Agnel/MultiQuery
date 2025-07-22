@@ -323,16 +323,16 @@ object TablesPopulationHandler {
             }
         
             baseDF.select(
-            col(NDID),
-            col(ISAC),
-            col(PRNM),
-            col("string_value"   ),
-            col("numeric_value"  ),
-            col("datetime_value" ),
-            col("string_values"  ),
-            col("numeric_values" ),
-            col("datetime_values")
-            )
+                col(NDID),
+                col(ISAC),
+                col(PRNM),
+                col("string_value"   ),
+                col("numeric_value"  ),
+                col("datetime_value" ),
+                col("string_values"  ),
+                col("numeric_values" ),
+                col("datetime_values")
+            )}
         }
         return fieldDfs.reduce(_ union _).orderBy(asc(NDID))
     }
