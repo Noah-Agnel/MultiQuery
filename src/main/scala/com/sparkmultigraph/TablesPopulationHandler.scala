@@ -262,22 +262,20 @@ object TablesPopulationHandler {
     ):Dataset[Row] = 
     {
         val edges_matches_x = nodesEdgesMatrix
-            .select(
-                col(NMID),
-                col(PAID), 
-                col(colNameId),
-                col(colNameType),
-                col(CRAT)
-            )
             .filter(size(col(colNameType)) > 0)
             .select(
                 col(NMID),
-                col(PAID), 
-                explode(arrays_zip(col(colNameType), col(colNameId))),
+                col(PAID),
+                explode(arrays_zip(col(colNameType), col(colNameId)))
+                    .alias("zipped")
+            )
+            .select(
+                col("zipped." + colNameId).as(ELID),
+                col(PAID),
+                col
+                col("zipped." + colNameType).as(ELTP),
                 col(CRAT)
             )
-            .withColumnRenamed(colNameId  , ELID)
-            .withColumnRenamed(colNameType, ELTP)
 
         return edges_matches_x
     }
