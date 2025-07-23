@@ -67,7 +67,8 @@ object DataInsertionInTable {
           .insertInto(s"$dbName.edges_matches")
         
         nodeStaticPropsTablePopulation(nodesDF("static"), dbName, spark)
+        edgeStaticPropsTablePopulation(edgesDF("static"), dbName, spark)
 
-        // TODO continue with edges
+        // TODO continue dynamic props
     }
 }

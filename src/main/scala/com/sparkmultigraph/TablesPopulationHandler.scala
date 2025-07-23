@@ -49,7 +49,15 @@ object TablesPopulationHandler {
     val PRNM: String = "property_name"
     val PRVL: String = "property_value"
     val SNPI: String = "snproperty_id"
-   
+    val SEPI: String = "seproperty_id"
+
+    val STVL: String = "string_value"
+    val NMLV: String = "numeric_value"
+    val DTLV: String = "datetime_value"
+    val STVS: String = "string_values"
+    val NLVS: String = "numeric_values"
+    val DTVS: String = "datetime_values"
+
     
     // ========================================================================================================================
     // FIELD MAPPING CREATION
@@ -115,12 +123,12 @@ object TablesPopulationHandler {
         adat_val : Column = lit(null)
     ):Dataset[Row] = {
         return dset
-            .withColumn("string_value"    , str_val.cast(StringType))
-            .withColumn("numeric_value"   , num_val.cast(DoubleType))
-            .withColumn("datetime_value"  , dat_val.cast(TimestampType))
-            .withColumn("string_values"   , astr_val.cast(ArrayType(StringType)))
-            .withColumn("numeric_values"  , anum_val.cast(ArrayType(DoubleType)))
-            .withColumn("datetime_values" , adat_val.cast(ArrayType(TimestampType)))
+            .withColumn(STVL, str_val.cast(StringType))
+            .withColumn(NMLV, num_val.cast(DoubleType))
+            .withColumn(DTLV, dat_val.cast(TimestampType))
+            .withColumn(STVS, astr_val.cast(ArrayType(StringType)))
+            .withColumn(NLVS, anum_val.cast(ArrayType(DoubleType)))
+            .withColumn(DTVS, adat_val.cast(ArrayType(TimestampType)))
     }
 
 
@@ -326,12 +334,12 @@ object TablesPopulationHandler {
                 col(NDID),
                 col(ISAC),
                 col(PRNM),
-                col("string_value"   ),
-                col("numeric_value"  ),
-                col("datetime_value" ),
-                col("string_values"  ),
-                col("numeric_values" ),
-                col("datetime_values")
+                col(STVL),
+                col(NMLV),
+                col(DTLV),
+                col(STVS),
+                col(NLVS),
+                col(DTVS)
             )}
         }
         return fieldDfs.reduce(_ union _).orderBy(asc(NDID))
@@ -363,17 +371,17 @@ object TablesPopulationHandler {
                     .withColumn(SNPI, (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
                     .withColumn(CRAT, current_timestamp())
                     .select(
-                       SNPI,
-                       NDID, 
-                       "property_name",
-                       "string_value",
-                       "numeric_value",
-                       "datetime_value",
-                       "string_values",
-                       "numeric_values", 
-                       "datetime_values",
-                       CRAT,
-                       ISAC
+                       col(SNPI),
+                       col(NDID), 
+                       col(PRNM),
+                       col(STVL),
+                       col(NMLV),
+                       col(DTLV),
+                       col(STVS),
+                       col(NLVS),
+                       col(DTVS),
+                       col(CRAT),
+                       col(ISAC)
                     )
 
                 // Saving the data into the table
@@ -382,6 +390,83 @@ object TablesPopulationHandler {
                    .insertInto(s"$dbName.node_static_props")
 
                 println(s"Inserted ${fieldDFs.count()} rows into $dbName.node_static_props")  
+            }  
+        }}
+    }
+
+    // ========================================================================================================================
+    // STATIC EDGE PROPERTIES DATAFRAME CREATION
+    // ========================================================================================================================
+    def componentOfEdgePropsDSCreation(dset:Dataset[Row], fieldMappings: Array[(String, String)]): Dataset[Row] = {
+        val fieldDfs   = fieldMappings.map { case (fieldName, fieldType) => {
+            var baseDF = dset.select(
+                col(ELID),
+                lit(fieldName                   ).as(PRNM),
+                col(s"static_props.${fieldName}").as(PRVL)
+            ).filter(col(PRVL).isNotNull)
+
+            fieldType match {
+                case "STRING"          => baseDF = newColumnsConfiguration(baseDF, str_val  = col(PRVL))
+                case "DOUBLE"          => baseDF = newColumnsConfiguration(baseDF, num_val  = col(PRVL))
+                case "TIMESTAMP"       => baseDF = newColumnsConfiguration(baseDF, dat_val  = col(PRVL)) 
+                case "ARRAY_STRING"    => baseDF = newColumnsConfiguration(baseDF, astr_val = col(PRVL))
+                case "ARRAY_DOUBLE"    => baseDF = newColumnsConfiguration(baseDF, anum_val = col(PRVL))
+                case "ARRAY_TIMESTAMP" => baseDF = newColumnsConfiguration(baseDF, adat_val = col(PRVL))
+                case _                 => baseDF = newColumnsConfiguration(baseDF, str_val  = col(PRVL))
+            }
+
+            baseDF.select(
+                col(ELID),
+                col(PRNM),
+                col(STVL),
+                col(NMLV),
+                col(DTLV),
+                col(STVS),
+                col(NLVS),
+                col(DTVS)
+            )}
+        }
+
+        return fieldDfs.reduce(_ union _).orderBy(asc(ELID))
+    }
+
+    def edgeStaticPropsTablePopulation(
+        edgesDS : mutable.Map[String, Dataset[Row]],
+        dbName  : String,
+        spark   : SparkSession
+    ){
+        edgesDS.foreach{ case (ds_type, ds) => {
+            val staticPropsSchema = ds.schema("static_props").dataType.asInstanceOf[StructType]
+            val fieldMappings     = fieldMappingCreation(ds, "static_props")
+
+            var fieldDFs = componentOfEdgePropsDSCreation(ds, fieldMappings)
+            if (!fieldDFs.isEmpty){
+                val maxIdOption = spark.sql(s"SELECT MAX($SEPI) as max_id FROM $dbName.edge_static_props").head()   
+                val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
+                val startId     = maxId + 1
+                fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
+                fieldDFs        = fieldDFs
+                    .withColumn(SEPI, (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
+                    .withColumn(CRAT, current_timestamp())      
+                    .select(
+                        col(SEPI),
+                        col(ELID),
+                        col(PRNM),
+                        col(STVL),
+                        col(NMLV),
+                        col(DTLV),
+                        col(STVS),
+                        col(NLVS),
+                        col(DTVS),
+                        col(CRAT)
+                    )
+
+                // Saving the data into the table
+                fieldDFs.write
+                   .mode("append")
+                   .insertInto(s"$dbName.edge_static_props")
+
+                println(s"Inserted ${fieldDFs.count()} rows into $dbName.edge_static_props")  
             }  
         }}
     }
