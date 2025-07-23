@@ -357,7 +357,7 @@ object TablesPopulationHandler {
         dbName : String,
         spark  : SparkSession
     ){
-        nodesDS.foreach{ case (ds_type, ds) => {
+        nodesDS.filter{ case (_, ds) => ds.columns.contains("static_props") }.foreach{ case (ds_type, ds) => {
             val staticPropsSchema = ds.schema("static_props").dataType.asInstanceOf[StructType]
             val fieldMappings     = fieldMappingCreation(ds, "static_props")
 
@@ -435,7 +435,7 @@ object TablesPopulationHandler {
         dbName  : String,
         spark   : SparkSession
     ){
-        edgesDS.foreach{ case (ds_type, ds) => {
+        edgesDS.filter{ case (_, ds) => ds.columns.contains("static_props") }.foreach{ case (ds_type, ds) => {
             val staticPropsSchema = ds.schema("static_props").dataType.asInstanceOf[StructType]
             val fieldMappings     = fieldMappingCreation(ds, "static_props")
 
