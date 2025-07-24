@@ -9,6 +9,7 @@ val icebergVersion = "1.3.1"
 libraryDependencies ++= Seq(
   "org.apache.spark"       %% "spark-core"   % sparkVersion % "provided",
   "org.apache.spark"       %% "spark-sql"    % sparkVersion % "provided",
+  "org.parboiled"          %% "parboiled-scala" % "1.4.1",
   "org.apache.iceberg"     %% "iceberg-spark-runtime-3.3" % icebergVersion,
   "org.apache.iceberg"     % "iceberg-core"  % icebergVersion,
   "org.apache.iceberg"     % "iceberg-aws"   % icebergVersion,
