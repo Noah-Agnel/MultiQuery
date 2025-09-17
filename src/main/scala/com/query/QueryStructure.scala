@@ -3,14 +3,30 @@ package com.query
 
 class QueryStructure {
     // Attributes for the query structure
-    private var _nodes: Map[String, QueryNode] = Map.empty[String, QueryNode]
-    private var _edges: Map[String, QueryEdge] = Map.empty[String, QueryEdge]
+    private var _nodes         : Map[String, QueryNode]     = Map.empty[String, QueryNode]
+    private var _edges         : Map[String, QueryEdge]     = Map.empty[String, QueryEdge]
+    private var _nodeInEdges   : Map[String, Array[String]] = Map.empty[String, Array[String]]
+    private var _nodeOutEdges  : Map[String, Array[String]] = Map.empty[String, Array[String]]
+    private var _nodeInOutEdges: Map[String, Array[String]] = Map.empty[String, Array[String]]
 
     // =============================== CONSTRUCTORS ================================
     def this(nodes: Map[String, QueryNode], edges: Map[String, QueryEdge]) = {
         this()
         this._nodes = nodes
         this._edges = edges
+    }
+    
+    def this(
+        nodes         : Map[String, QueryNode],
+        edges         : Map[String, QueryEdge],
+        nodeInEdges   : Map[String, Array[String]],
+        nodeOutEdges  : Map[String, Array[String]],
+        nodeInOutEdges: Map[String, Array[String]]
+    ) = {
+        this(nodes, edges) 
+        this._nodeInEdges    = nodeInEdges
+        this._nodeOutEdges   = nodeOutEdges
+        this._nodeInOutEdges = nodeInOutEdges
     }
 
     // =============================== GETTERS AND SETTERS ================================
@@ -52,6 +68,78 @@ class QueryStructure {
 
     def getNodeCount: Int = _nodes.size
     def getEdgeCount: Int = _edges.size
+
+    def getNodeInEdges(name: String): Option[Array[String]] = {
+        this._nodeInEdges.get(name)
+    }
+    
+    def getNodeOutEdges(name: String): Option[Array[String]] = {
+        this._nodeOutEdges.get(name)
+    }
+
+    def getNodeInOutEdges(name: String): Option[Array[String]] = {
+        this._nodeInOutEdges.get(name)
+    }
+
+    def setNodeInEdges(name: String, edges: Array[String]): Unit = {
+        this._nodeInEdges += (name -> edges)
+    }
+    
+    def setNodeOutEdges(name: String, edges: Array[String]): Unit = {
+        this._nodeOutEdges += (name -> edges)
+    }
+
+    def setNodeInOutEdges(name: String, edges: Array[String]): Unit = {
+        this._nodeInOutEdges += (name -> edges)
+    }
+
+    def removeNodeInEdges(name: String): Unit = {
+        this._nodeInEdges -= name
+    }
+    
+    def removeNodeOutEdges(name: String): Unit = {
+        this._nodeOutEdges -= name
+    }
+
+    def removeNodeInOutEdges(name: String): Unit = {
+        this._nodeInOutEdges -= name
+    }
+
+    def addEdgeToNodeInEdges(name: String, edge: String): Unit = {
+        this._nodeInEdges += (name -> (
+            this._nodeInEdges.getOrElse(name, Array.empty[String]) :+ edge
+        ).sorted)
+    }
+    
+    def addEdgeToNodeOutEdges(name: String, edge: String): Unit = {
+        this._nodeOutEdges += (name -> (
+            this._nodeOutEdges.getOrElse(name, Array.empty[String]) :+ edge
+        ).sorted)
+    }
+
+    def addEdgeToNodeInOutEdges(name: String, edge: String): Unit = {
+        this._nodeInOutEdges += (name -> (
+            this._nodeInOutEdges.getOrElse(name, Array.empty[String]) :+ edge
+        ).sorted)
+    }
+
+    def removeEdgeFromNodeInEdges(name: String, edge: String): Unit = {
+        this._nodeInEdges += (name -> (
+            this._nodeInEdges.getOrElse(name, Array.empty[String]) :+ edge
+        ).sorted)
+    }
+
+    def removeEdgeFromNodeOutEdges(name: String, edge: String): Unit = {
+        this._nodeOutEdges += (name -> (
+            this._nodeOutEdges.getOrElse(name, Array.empty[String]) :+ edge
+        ).sorted)
+    }
+
+    def removeEdgeFromNodeInOutEdges(name: String, edge: String): Unit = {
+        this._nodeInOutEdges += (name -> (
+            this._nodeInOutEdges.getOrElse(name, Array.empty[String]) :+ edge
+        ).sorted)
+    }
 
     // =============================== TO STRING ================================
     override def toString: String = {

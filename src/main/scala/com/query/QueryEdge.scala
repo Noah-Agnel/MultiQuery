@@ -10,32 +10,40 @@ import  java.nio.charset.StandardCharsets
 class QueryEdge extends StatCondPropsMG {  
   // Attributes for the query edge    
   private var _edgeName        : String         = ""
+  private var _srcNodeName     : String         = ""
+  private var _dstNodeName     : String         = ""
   private var _type            : String         = ""
   private var _signature       : String         = ""
   
   // =============================== CONSTRUCTORS ================================
   // Primary constructor
-  def this(edgeName: String) = {
+  def this(edgeName: String, srcNodeName: String, dstNodeName: String) = {
     this()
     this._edgeName = edgeName
+    this._srcNodeName = srcNodeName
+    this._dstNodeName = dstNodeName
   }
   
   // Constructor with name and type
   def this(
     edgeName: String,
+    srcNodeName: String,
+    dstNodeName: String,
     edgeType: String
   ) = {
-    this(edgeName)
+    this(edgeName, srcNodeName, dstNodeName)
     this._type = edgeType
   }
 
   // Constructor with name, type, and cond_props
   def this(
     edgeName       : String,
+    srcNodeName    : String,
+    dstNodeName    : String,
     edgeType       : String,
     stat_cond_props: Map[Integer, Map[String, Property[_]]]
   ) = {
-    this(edgeName, edgeType)
+    this(edgeName, srcNodeName, dstNodeName, edgeType)
     this._stat_cond_props = stat_cond_props
   }
 
@@ -64,6 +72,20 @@ class QueryEdge extends StatCondPropsMG {
   def refreshSignature(): Unit = {
       _generateSignature()
   }
+
+  // 4. Source node name
+  def getSrcNodeName: String = _srcNodeName
+
+  def setSrcNodeName(srcNodeName: String): Unit = {
+    this._srcNodeName = srcNodeName
+  }
+
+  // 5. Destination node name
+  def getDstNodeName: String = _dstNodeName
+
+  def setDstNodeName(dstNodeName: String): Unit = {
+    this._dstNodeName = dstNodeName
+  }
   
 
   // ============================= SIGNATURE GENERATION =============================
@@ -81,10 +103,16 @@ class QueryEdge extends StatCondPropsMG {
     // 1. Add edge name
     sb.append("edgeName:").append(_edgeName).append("|")
     
-    // 2. Add type
+    // 2. Add source node name
+    sb.append("srcNodeName:").append(_srcNodeName).append("|")
+    
+    // 3. Add destination node name
+    sb.append("dstNodeName:").append(_dstNodeName).append("|")
+    
+    // 4. Add type
     sb.append("type:").append(_type).append("|")
     
-    // 3. Add stat_cond_props using common method from trait
+    // 5. Add stat_cond_props using common method from trait
     appendStatCondPropsToSignature(sb)
     
     // Generate MD5 hash
@@ -110,6 +138,8 @@ class QueryEdge extends StatCondPropsMG {
     val sb = new StringBuilder()
     sb.append("QueryEdge(\n")
     sb.append("\tname=").append(_edgeName).append("\n")
+    sb.append("\tsrcNodeName=").append(_srcNodeName).append("\n")
+    sb.append("\tdstNodeName=").append(_dstNodeName).append("\n")
     sb.append("\ttype=").append(_type).append("\n")
     
     if (_stat_cond_props.nonEmpty) {

@@ -48,12 +48,14 @@ object QueryStructureExample {
     n3.addStatCondProp(0, "age", IntegerProp("age", Operator.Equal, 18))
     
     // ================ Create Edge 1 (n2 -> n1) ================
-    val edge1 = new QueryEdge("e1", "is_a")
+    // Updated constructor: edgeName, srcNodeName, dstNodeName, edgeType
+    val edge1 = new QueryEdge("e1", "n2", "n1", "is_a")
     // Add since: 2020 property
     edge1.addStatCondProp(0, "since", IntegerProp("since", Operator.Equal, 2020))
     
     // ================ Create Edge 2 (n3 -> n1) ================
-    val edge2 = new QueryEdge("e2", "is_a")
+    // Updated constructor: edgeName, srcNodeName, dstNodeName, edgeType
+    val edge2 = new QueryEdge("e2", "n3", "n1", "is_a")
     // Add since: 2022 property
     edge2.addStatCondProp(0, "since", IntegerProp("since", Operator.Equal, 2022))
     
@@ -64,6 +66,15 @@ object QueryStructureExample {
     
     queryStructure.addEdge(edge1)
     queryStructure.addEdge(edge2)
+    
+    // ================ Establish edge connections ================
+    // For edge1 (n2 -> n1): n2 is source, n1 is destination
+    queryStructure.addEdgeToNodeOutEdges("n2", "e1")  // n2 has outgoing edge e1
+    queryStructure.addEdgeToNodeInEdges("n1", "e1")   // n1 has incoming edge e1 
+    
+    // For edge2 (n3 -> n1): n3 is source, n1 is destination
+    queryStructure.addEdgeToNodeOutEdges("n3", "e2")  // n3 has outgoing edge e2
+    queryStructure.addEdgeToNodeInEdges("n1", "e2")   // n1 has incoming edge e2
     
     queryStructure
   }
