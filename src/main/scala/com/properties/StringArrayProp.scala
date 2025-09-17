@@ -7,7 +7,7 @@ package com.properties
 case class StringArrayProp(
   override val name     : String,
   override val operator : Operator,
-  override val value    : Option[Array[String]]
+  override val value    : Array[String]
 ) extends Property[Array[String]] {
 
   /**
@@ -128,27 +128,27 @@ object StringArrayProp {
     StringArrayProp(
       name,
       Operator.ArrayEmpty,
-      null
+      null.asInstanceOf[Array[String]]
     )
   
   def isNotEmpty(name: String): StringArrayProp = 
     StringArrayProp(
       name,
       Operator.ArrayNotEmpty,
-      null
+      null.asInstanceOf[Array[String]]
     )
   
   def isNull(name: String): StringArrayProp = 
     StringArrayProp(
       name,
       Operator.IsNull,
-      null
+      null.asInstanceOf[Array[String]]
     )
   
   def isNotNull(name: String): StringArrayProp = 
     StringArrayProp(
       name,
       Operator.IsNotNull,
-      null
+      null.asInstanceOf[Array[String]]
     )
 } 

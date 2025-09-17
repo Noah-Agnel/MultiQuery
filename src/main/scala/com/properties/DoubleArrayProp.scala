@@ -8,7 +8,7 @@ import  scala.util.Try
 case class DoubleArrayProp(
   override val name    : String,
   override val operator: Operator,
-  override val value   : Option[Array[Double]]
+  override val value   : Array[Double]
 ) extends Property[Array[Double]] {
 
   /**
@@ -128,27 +128,27 @@ object DoubleArrayProp {
     DoubleArrayProp(
       name, 
       Operator.ArrayEmpty,
-      null
+      null.asInstanceOf[Array[Double]]
     )
   
   def isNotEmpty(name: String): DoubleArrayProp = 
     DoubleArrayProp(
       name, 
       Operator.ArrayNotEmpty, 
-      null
+      null.asInstanceOf[Array[Double]]
     )
   
   def isNull(name: String): DoubleArrayProp = 
     DoubleArrayProp(
       name, 
       Operator.IsNull, 
-      null
+      null.asInstanceOf[Array[Double]]
     )
   
   def isNotNull(name: String): DoubleArrayProp = 
     DoubleArrayProp(
       name, 
       Operator.IsNotNull,
-      null
+      null.asInstanceOf[Array[Double]]
     )
 } 

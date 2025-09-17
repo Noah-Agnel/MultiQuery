@@ -9,7 +9,7 @@ import  scala.util.Try
 case class IntegerArrayProp(
   override val name    : String,
   override val operator: Operator,
-  override val value   : Option[Array[Int]]
+  override val value   : Array[Int]
 ) extends Property[Array[Int]] {
 
   /**
@@ -131,27 +131,27 @@ object IntegerArrayProp {
     IntegerArrayProp(
       name, 
       Operator.ArrayEmpty, 
-      null
+      null.asInstanceOf[Array[Int]]
     )
   
   def isNotEmpty(name: String): IntegerArrayProp = 
     IntegerArrayProp(
       name, 
       Operator.ArrayNotEmpty, 
-      null
+      null.asInstanceOf[Array[Int]]
     )
   
   def isNull(name: String): IntegerArrayProp = 
     IntegerArrayProp(
       name, 
       Operator.IsNull, 
-      null
+      null.asInstanceOf[Array[Int]]
     )
   
   def isNotNull(name: String): IntegerArrayProp = 
     IntegerArrayProp(
       name, 
       Operator.IsNotNull, 
-      null
+      null.asInstanceOf[Array[Int]]
     )
 } 

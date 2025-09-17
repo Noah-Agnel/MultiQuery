@@ -8,7 +8,7 @@ import  scala.util.Try
 case class DoubleProp(
   override val name    : String,
   override val operator: Operator,
-  override val value   : Option[Double]
+  override val value   : Double
 ) extends Property[Double] {
 
   /**
@@ -91,13 +91,13 @@ object DoubleProp {
     DoubleProp(
         name     = name, 
         operator = Operator.IsNull, 
-        value    = 0.0
+        value    = null.asInstanceOf[Double]
     )
   
   def isNotNull(name: String): DoubleProp = 
     DoubleProp(
         name     = name, 
         operator = Operator.IsNotNull, 
-        value    = 0.0
+        value    = null.asInstanceOf[Double]
     )
 } 

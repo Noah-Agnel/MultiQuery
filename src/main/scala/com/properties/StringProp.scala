@@ -7,7 +7,7 @@ package com.properties
 case class StringProp(
   override val name    : String,
   override val operator: Operator,
-  override val value   : Option[String]
+  override val value   : String
 ) extends Property[String] {
 
   /**
@@ -128,13 +128,13 @@ object StringProp {
     StringProp(
         name     = name, 
         operator = Operator.IsNull, 
-        value    = null
+        value    = null.asInstanceOf[String]
     )
   
   def isNotNull(name: String): StringProp = 
     StringProp(
         name     = name, 
         operator = Operator.IsNotNull, 
-        value    = null
+        value    = null.asInstanceOf[String]
     ) 
 }

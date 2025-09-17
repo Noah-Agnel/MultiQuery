@@ -87,7 +87,7 @@ object Operator {
 trait Property[T] {
   val name    : String
   val operator: Operator
-  val value   : Option[T]
+  val value   : T
   
   /**
    * Evaluates this property against a given value
@@ -161,27 +161,27 @@ object Property {
             if (operator == Operator.IsNull || operator == Operator.IsNotNull) {
               properties.get(propertyName) match {
                 case Some(PropertyType.StringType)       => 
-                  return Success(StringProp(propertyName,       operator, null))
+                  return Success(StringProp(propertyName,       operator, null.asInstanceOf[String]       ))
                 case Some(PropertyType.IntegerType)      => 
-                  return Success(IntegerProp(propertyName,      operator, null))
+                  return Success(IntegerProp(propertyName,      operator, null.asInstanceOf[Int]          ))
                 case Some(PropertyType.DoubleType)       => 
-                  return Success(DoubleProp(propertyName,       operator, null))
+                  return Success(DoubleProp(propertyName,       operator, null.asInstanceOf[Double]       ))
                 case Some(PropertyType.StringArrayType)  => 
-                  return Success(StringArrayProp(propertyName,  operator, null))
+                  return Success(StringArrayProp(propertyName,  operator, null.asInstanceOf[Array[String]]))
                 case Some(PropertyType.IntegerArrayType) => 
-                  return Success(IntegerArrayProp(propertyName, operator, null))
+                  return Success(IntegerArrayProp(propertyName, operator, null.asInstanceOf[Array[Int]]   ))
                 case Some(PropertyType.DoubleArrayType)  => 
-                  return Success(DoubleArrayProp(propertyName,  operator, null))
+                  return Success(DoubleArrayProp(propertyName,  operator, null.asInstanceOf[Array[Double]]))
               }
             }
             
             properties.get(propertyName) match {
               case Some(PropertyType.StringType)       => 
-                return Success(StringProp(propertyName,       operator,  valueStr))
+                return Success(StringProp(propertyName,       operator, valueStr))
               case Some(PropertyType.IntegerType)      => 
                 return Success(IntegerProp(propertyName,      operator, valueStr.toInt))
               case Some(PropertyType.DoubleType)       => 
-                return Success(DoubleProp(propertyName,       operator,  valueStr.toDouble))
+                return Success(DoubleProp(propertyName,       operator, valueStr.toDouble))
               case Some(PropertyType.StringArrayType)  => 
                 return Success(StringArrayProp(propertyName,  operator, valueStr.split(",").map(_.trim)))
               case Some(PropertyType.IntegerArrayType) => 

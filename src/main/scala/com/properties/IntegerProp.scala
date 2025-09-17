@@ -8,7 +8,7 @@ import  scala.util.Try
 case class IntegerProp(
   override val name     : String,
   override val operator : Operator,
-  override val value    : Option[Int]
+  override val value    : Int
 ) extends Property[Int] {
 
   /**
@@ -95,13 +95,13 @@ object IntegerProp {
     IntegerProp(
         name     = name, 
         operator = Operator.IsNull, 
-        value    = 0
+        value    = null.asInstanceOf[Int]
     )
   
   def isNotNull(name: String): IntegerProp = 
     IntegerProp(
         name     = name, 
         operator = Operator.IsNotNull, 
-        value    = 0
+        value    = null.asInstanceOf[Int]
     )
 } 
