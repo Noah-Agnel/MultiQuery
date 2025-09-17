@@ -8,11 +8,6 @@ import  java.nio.charset.StandardCharsets
  * Represents a query node with a name and associated labels
  */
 class QueryNode extends StatCondPropsMG {
-  // Type alias
-  //                    simple cond id -> key -> property
-  type StatCondProps = Map[Integer, Map[String, Property[_]]]
-  
-  
   // Attributes for the query node    
   private var _nodeName        : String              = ""
   private var _labels          : ArrayBuffer[String] = ArrayBuffer.empty[String]

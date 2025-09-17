@@ -7,11 +7,7 @@ import  java.nio.charset.StandardCharsets
 /**
  * Represents a query edge with a name and associated type
  */
-class QueryEdge extends StatCondPropsMG {
-  // Type alias
-  //                    simple cond id -> key -> property
-  type StatCondProps = Map[Integer, Map[String, Property[_]]]
-  
+class QueryEdge extends StatCondPropsMG {  
   // Attributes for the query edge    
   private var _edgeName        : String         = ""
   private var _type            : String         = ""
