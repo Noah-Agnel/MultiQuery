@@ -20,12 +20,9 @@ case class IntegerProp(
       case l: Long   => l.toInt
       case d: Double => d.toInt
       case f: Float  => f.toInt
-      case s: String => Try(s.toInt).getOrElse(return false)
-      case _ => return false
+      case s: String => Try(s.toInt).getOrElse(throw new IllegalArgumentException(s"Cannot convert $s to Int"))
+      case _         => throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Int")
     }
-
-    if (intValue == false)
-      throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Int")
     
     operator match {
       case Operator.Equal              => intValue == value

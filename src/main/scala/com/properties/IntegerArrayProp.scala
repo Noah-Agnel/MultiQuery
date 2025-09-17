@@ -21,7 +21,7 @@ case class IntegerArrayProp(
       case arr : Array[Long]      => arr.map(_.toInt)
       case arr : Array[Double]    => arr.map(_.toInt)
       case arr : Array[Float]     => arr.map(_.toInt)
-      case arr : Array[String]    => arr.map(s => Try(s.toInt).getOrElse(return false)).toArray
+      case arr : Array[String]    => arr.map(s => Try(s.toInt).getOrElse(throw new IllegalArgumentException(s"Cannot convert $s to Int"))).toArray
 
       case coll: Iterable[_]      => convertIterableToArray(coll)
             
@@ -32,11 +32,8 @@ case class IntegerArrayProp(
       case num : String           => Array(num.toInt)
 
       case null                   => null
-      case _                      => return false
+      case _                      => throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Int")
     }
-
-    if (arrayValue == false)
-      throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Int")
     
     operator match {
       case Operator.Equal         => arrayValue.sameElements(value)

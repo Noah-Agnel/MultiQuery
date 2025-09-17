@@ -20,7 +20,7 @@ case class DoubleArrayProp(
       case arr : Array[Float ]    => arr.map(_.toDouble)
       case arr : Array[Int   ]    => arr.map(_.toDouble)
       case arr : Array[Long  ]    => arr.map(_.toDouble)
-      case arr : Array[String]    => arr.map(s => Try(s.toDouble).getOrElse(return false)).toArray
+      case arr : Array[String]    => arr.map(s => Try(s.toDouble).getOrElse(throw new IllegalArgumentException(s"Cannot convert $s to Double"))).toArray
 
       case coll: Iterable[_]      => convertIterableToDoubleArray(coll)
       
@@ -30,11 +30,8 @@ case class DoubleArrayProp(
       case num : Long             => Array(num.toDouble)
       case num : String           => Array(num.toDouble)
       case null                   => null
-      case _                      => return false
-    }
-    
-    if (arrayValue == false)
-      throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Double")
+      case _                      => throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Double")
+    }  
     
     operator match {
       case Operator.Equal         => arrayValue.sameElements(value)

@@ -30,11 +30,8 @@ case class StringArrayProp(
       case num: String            => Array(num)
 
       case null                   => null
-      case _                      => return false
+      case _                      => throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to String")
     }
-    
-    if (arrayValue == false)
-      throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to String")
     
     operator match {
       case Operator.Equal         => arrayValue.sameElements(value)

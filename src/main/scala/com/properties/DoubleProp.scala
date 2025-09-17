@@ -20,8 +20,8 @@ case class DoubleProp(
       case f: Float  => f.toDouble
       case i: Int    => i.toDouble
       case l: Long   => l.toDouble
-      case s: String => Try(s.toDouble).getOrElse(return false)
-      case _ => return false
+      case s: String => Try(s.toDouble).getOrElse(throw new IllegalArgumentException(s"Cannot convert $s to Double"))
+      case _         => throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Double")
     }
     
     operator match {

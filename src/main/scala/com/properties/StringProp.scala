@@ -21,12 +21,9 @@ case class StringProp(
       case l: Long   => l.toString
       case d: Double => d.toString
       case f: Float  => f.toString
-      case other     => return false
+      case other     => throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to String")
     }
 
-    if (stringValue == false)
-      throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to String")
-    
     operator match {
       case Operator.Equal              => stringValue == value
       case Operator.NotEqual           => stringValue != value
