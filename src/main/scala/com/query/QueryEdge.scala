@@ -33,7 +33,7 @@ class QueryEdge extends StatCondPropsMG {
   def this(
     edgeName       : String,
     edgeType       : String,
-    stat_cond_props: StatCondProps
+    stat_cond_props: Map[Integer, Map[String, Property[_]]]
   ) = {
     this(edgeName, edgeType)
     this._stat_cond_props = stat_cond_props

@@ -33,7 +33,7 @@ class QueryNode extends StatCondPropsMG {
   def this(
     nodeName       : String,
     labels         : Array[String],
-    stat_cond_props: StatCondProps
+    stat_cond_props: Map[Integer, Map[String, Property[_]]]
   ) = {
     this(nodeName, labels)
     this._stat_cond_props = stat_cond_props
