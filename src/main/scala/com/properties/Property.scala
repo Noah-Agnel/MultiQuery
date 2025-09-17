@@ -84,7 +84,7 @@ object Operator {
  * Base trait for all property types with operators
  * Represents a property with a name, operator, and value that can be evaluated
  */
-sealed trait Property[T] {
+trait Property[T] {
   val name    : String
   val operator: Operator
   val value   : T

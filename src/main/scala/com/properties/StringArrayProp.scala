@@ -16,10 +16,25 @@ case class StringArrayProp(
   override def evaluate(actualValue: Any): Boolean = {
     val arrayValue = actualValue match {
       case arr : Array[String] => arr
-      case list: List[String]  => list.toArray
-      case seq : Seq[String]   => seq.toArray
-      case _ => return false
+      case arr : Array[Int]    => arr.map(_.toString)
+      case arr : Array[Long]   => arr.map(_.toString)
+      case arr : Array[Double] => arr.map(_.toString)
+      case arr : Array[Float]  => arr.map(_.toString)
+
+      case coll: Iterable[_]   => convertIterableToArray(coll)
+
+      case num: Int    => Array(num.toString)
+      case num: Long   => Array(num.toString)
+      case num: Double => Array(num.toString)
+      case num: Float  => Array(num.toString)
+      case num: String => Array(num)
+
+      case null                => null
+      case _                   => return false
     }
+    
+    if (arrayValue == false)
+      throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to String")
     
     operator match {
       case Operator.Equal         => arrayValue.sameElements(value)
@@ -37,8 +52,19 @@ case class StringArrayProp(
       case Operator.IsNull        => actualValue == null
       case Operator.IsNotNull     => actualValue != null
       
-      case _ => false
+      case _                      => false
     }
+  }
+
+  private def convertIterableToArray(iterable: Iterable[_]): Array[String] = {
+    iterable.map {
+      case s: String => s
+      case i: Int    => i.toString
+      case l: Long   => l.toString
+      case d: Double => d.toString
+      case f: Float  => f.toString
+      case other     => throw new IllegalArgumentException(s"Cannot convert ${other.getClass} to String")
+    }.toArray
   }
 
   override def toString: String = s"$name ${operator.symbol} [${value.mkString(", ")}]"

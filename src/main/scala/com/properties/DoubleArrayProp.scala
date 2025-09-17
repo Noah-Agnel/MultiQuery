@@ -20,22 +20,21 @@ case class DoubleArrayProp(
       case arr : Array[Float ] => arr.map(_.toDouble)
       case arr : Array[Int   ] => arr.map(_.toDouble)
       case arr : Array[Long  ] => arr.map(_.toDouble)
-      case list: List[Double ] => list.toArray
-      case list: List[Float  ] => list.map(_.toDouble).toArray
-      case list: List[Int    ] => list.map(_.toDouble).toArray
-      case list: List[Long   ] => list.map(_.toDouble).toArray
-      case seq : Seq[Double  ] => seq.toArray
-      case seq : Seq[Float   ] => seq.map(_.toDouble).toArray
-      case seq : Seq[Int     ] => seq.map(_.toDouble).toArray
-      case seq : Seq[Long    ] => seq.map(_.toDouble).toArray
+      case arr : Array[String] => arr.map(s => Try(s.toDouble).getOrElse(return false)).toArray
+
+      case coll: Iterable[_]   => convertIterableToDoubleArray(coll)
+      
       case num : Double        => Array(num)
       case num : Float         => Array(num.toDouble)
       case num : Int           => Array(num.toDouble)
       case num : Long          => Array(num.toDouble)
       case num : String        => Array(num.toDouble)
-      case null => null
-      case _ => return false
+      case null                => null
+      case _                   => return false
     }
+    
+    if (arrayValue == false)
+      throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Double")
     
     operator match {
       case Operator.Equal         => arrayValue.sameElements(value)
@@ -53,8 +52,19 @@ case class DoubleArrayProp(
       case Operator.IsNull        => actualValue == null
       case Operator.IsNotNull     => actualValue != null
       
-      case _ => false
+      case _                      => false
     }   
+  }
+
+  private def convertIterableToDoubleArray(iterable: Iterable[_]): Array[Double] = {
+    iterable.map {
+      case d: Double => d
+      case f: Float  => f.toDouble
+      case i: Int    => i.toDouble
+      case l: Long   => l.toDouble
+      case s: String => s.toDouble
+      case other => throw new IllegalArgumentException(s"Cannot convert ${other.getClass} to Double")
+    }.toArray
   }
 
   override def toString: String = s"$name ${operator.symbol} [${value.mkString(", ")}]"

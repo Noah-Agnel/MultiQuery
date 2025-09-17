@@ -17,18 +17,26 @@ case class IntegerArrayProp(
    */
   override def evaluate(actualValue: Any): Boolean = {
     val arrayValue = actualValue match {
-      case arr : Array[Int ] => arr
-      case arr : Array[Long] => arr.map(_.toInt)
-      case list: List[Int  ] => list.toArray
-      case list: List[Long ] => list.map(_.toInt).toArray
-      case seq : Seq[Int   ] => seq.toArray
-      case seq : Seq[Long  ] => seq.map(_.toInt).toArray
-      case num : Int         => Array(num)
-      case num : Long        => Array(num.toInt)
-      case num : String      => Array(num.toInt)
-      case null => null
-      case _ => return false
+      case arr : Array[Int ]   => arr
+      case arr : Array[Long]   => arr.map(_.toInt)
+      case arr : Array[Double] => arr.map(_.toInt)
+      case arr : Array[Float]  => arr.map(_.toInt)
+      case arr : Array[String] => arr.map(s => Try(s.toInt).getOrElse(return false)).toArray
+
+      case coll: Iterable[_]   => convertIterableToArray(coll)
+            
+      case num : Int           => Array(num)
+      case num : Long          => Array(num.toInt)
+      case num : Double        => Array(num.toInt)
+      case num : Float         => Array(num.toInt)
+      case num : String        => Array(num.toInt)
+
+      case null                => null
+      case _                   => return false
     }
+
+    if (arrayValue == false)
+      throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Int")
     
     operator match {
       case Operator.Equal         => arrayValue.sameElements(value)
@@ -48,6 +56,17 @@ case class IntegerArrayProp(
       
       case _ => false
     }
+  }
+
+  private def convertIterableToArray(iterable: Iterable[_]): Array[Int] = {
+    iterable.map {
+      case d: Double => d.toInt
+      case f: Float  => f.toInt
+      case i: Int    => i
+      case l: Long   => l.toInt
+      case s: String => Try(s.toInt).getOrElse(return false)
+      case other     => throw new IllegalArgumentException(s"Cannot convert ${other.getClass} to Int")
+    }.toArray
   }
 
   override def toString: String = s"$name ${operator.symbol} [${value.mkString(", ")}]"
