@@ -87,7 +87,7 @@ object Operator {
 trait Property[T] {
   val name    : String
   val operator: Operator
-  val value   : T
+  val value   : Option[T]
   
   /**
    * Evaluates this property against a given value

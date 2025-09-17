@@ -7,7 +7,7 @@ package com.properties
 case class StringProp(
   override val name    : String,
   override val operator: Operator,
-  override val value   : String
+  override val value   : Option[String]
 ) extends Property[String] {
 
   /**
@@ -17,8 +17,15 @@ case class StringProp(
     val stringValue = actualValue match {     
       case null      => null
       case s: String => s
-      case other     => other.toString
+      case i: Int    => i.toString
+      case l: Long   => l.toString
+      case d: Double => d.toString
+      case f: Float  => f.toString
+      case other     => return false
     }
+
+    if (stringValue == false)
+      throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to String")
     
     operator match {
       case Operator.Equal              => stringValue == value

@@ -7,9 +7,9 @@ import  scala.util.Try
  * Supports IN, NOT IN, containment, and size operations for integer arrays
  */
 case class IntegerArrayProp(
-  override val name: String,
+  override val name    : String,
   override val operator: Operator,
-  override val value: Array[Int]
+  override val value   : Option[Array[Int]]
 ) extends Property[Array[Int]] {
 
   /**
@@ -17,22 +17,22 @@ case class IntegerArrayProp(
    */
   override def evaluate(actualValue: Any): Boolean = {
     val arrayValue = actualValue match {
-      case arr : Array[Int ]   => arr
-      case arr : Array[Long]   => arr.map(_.toInt)
-      case arr : Array[Double] => arr.map(_.toInt)
-      case arr : Array[Float]  => arr.map(_.toInt)
-      case arr : Array[String] => arr.map(s => Try(s.toInt).getOrElse(return false)).toArray
+      case arr : Array[Int ]      => arr
+      case arr : Array[Long]      => arr.map(_.toInt)
+      case arr : Array[Double]    => arr.map(_.toInt)
+      case arr : Array[Float]     => arr.map(_.toInt)
+      case arr : Array[String]    => arr.map(s => Try(s.toInt).getOrElse(return false)).toArray
 
-      case coll: Iterable[_]   => convertIterableToArray(coll)
+      case coll: Iterable[_]      => convertIterableToArray(coll)
             
-      case num : Int           => Array(num)
-      case num : Long          => Array(num.toInt)
-      case num : Double        => Array(num.toInt)
-      case num : Float         => Array(num.toInt)
-      case num : String        => Array(num.toInt)
+      case num : Int              => Array(num)
+      case num : Long             => Array(num.toInt)
+      case num : Double           => Array(num.toInt)
+      case num : Float            => Array(num.toInt)
+      case num : String           => Array(num.toInt)
 
-      case null                => null
-      case _                   => return false
+      case null                   => null
+      case _                      => return false
     }
 
     if (arrayValue == false)
@@ -64,7 +64,7 @@ case class IntegerArrayProp(
       case f: Float  => f.toInt
       case i: Int    => i
       case l: Long   => l.toInt
-      case s: String => Try(s.toInt).getOrElse(return false)
+      case s: String => s.toInt
       case other     => throw new IllegalArgumentException(s"Cannot convert ${other.getClass} to Int")
     }.toArray
   }

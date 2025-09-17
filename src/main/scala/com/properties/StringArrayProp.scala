@@ -5,9 +5,9 @@ package com.properties
  * Supports IN, NOT IN, containment, and size operations for string arrays
  */
 case class StringArrayProp(
-  override val name: String,
-  override val operator: Operator,
-  override val value: Array[String]
+  override val name     : String,
+  override val operator : Operator,
+  override val value    : Option[Array[String]]
 ) extends Property[Array[String]] {
 
   /**
@@ -15,22 +15,22 @@ case class StringArrayProp(
    */
   override def evaluate(actualValue: Any): Boolean = {
     val arrayValue = actualValue match {
-      case arr : Array[String] => arr
-      case arr : Array[Int]    => arr.map(_.toString)
-      case arr : Array[Long]   => arr.map(_.toString)
-      case arr : Array[Double] => arr.map(_.toString)
-      case arr : Array[Float]  => arr.map(_.toString)
+      case arr : Array[String]    => arr
+      case arr : Array[Int]       => arr.map(_.toString)
+      case arr : Array[Long]      => arr.map(_.toString)
+      case arr : Array[Double]    => arr.map(_.toString)
+      case arr : Array[Float]     => arr.map(_.toString)
 
-      case coll: Iterable[_]   => convertIterableToArray(coll)
+      case coll: Iterable[_]      => convertIterableToArray(coll)
 
-      case num: Int    => Array(num.toString)
-      case num: Long   => Array(num.toString)
-      case num: Double => Array(num.toString)
-      case num: Float  => Array(num.toString)
-      case num: String => Array(num)
+      case num: Int               => Array(num.toString)
+      case num: Long              => Array(num.toString)
+      case num: Double            => Array(num.toString)
+      case num: Float             => Array(num.toString)
+      case num: String            => Array(num)
 
-      case null                => null
-      case _                   => return false
+      case null                   => null
+      case _                      => return false
     }
     
     if (arrayValue == false)

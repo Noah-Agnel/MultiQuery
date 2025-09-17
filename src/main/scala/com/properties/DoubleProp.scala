@@ -8,7 +8,7 @@ import  scala.util.Try
 case class DoubleProp(
   override val name    : String,
   override val operator: Operator,
-  override val value   : Double
+  override val value   : Option[Double]
 ) extends Property[Double] {
 
   /**

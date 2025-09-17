@@ -8,7 +8,7 @@ import  scala.util.Try
 case class DoubleArrayProp(
   override val name    : String,
   override val operator: Operator,
-  override val value   : Array[Double]
+  override val value   : Option[Array[Double]]
 ) extends Property[Array[Double]] {
 
   /**
@@ -16,21 +16,21 @@ case class DoubleArrayProp(
    */
   override def evaluate(actualValue: Any): Boolean = {
     val arrayValue = actualValue match {
-      case arr : Array[Double] => arr
-      case arr : Array[Float ] => arr.map(_.toDouble)
-      case arr : Array[Int   ] => arr.map(_.toDouble)
-      case arr : Array[Long  ] => arr.map(_.toDouble)
-      case arr : Array[String] => arr.map(s => Try(s.toDouble).getOrElse(return false)).toArray
+      case arr : Array[Double]    => arr
+      case arr : Array[Float ]    => arr.map(_.toDouble)
+      case arr : Array[Int   ]    => arr.map(_.toDouble)
+      case arr : Array[Long  ]    => arr.map(_.toDouble)
+      case arr : Array[String]    => arr.map(s => Try(s.toDouble).getOrElse(return false)).toArray
 
-      case coll: Iterable[_]   => convertIterableToDoubleArray(coll)
+      case coll: Iterable[_]      => convertIterableToDoubleArray(coll)
       
-      case num : Double        => Array(num)
-      case num : Float         => Array(num.toDouble)
-      case num : Int           => Array(num.toDouble)
-      case num : Long          => Array(num.toDouble)
-      case num : String        => Array(num.toDouble)
-      case null                => null
-      case _                   => return false
+      case num : Double           => Array(num)
+      case num : Float            => Array(num.toDouble)
+      case num : Int              => Array(num.toDouble)
+      case num : Long             => Array(num.toDouble)
+      case num : String           => Array(num.toDouble)
+      case null                   => null
+      case _                      => return false
     }
     
     if (arrayValue == false)

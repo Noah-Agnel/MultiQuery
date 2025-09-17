@@ -27,19 +27,19 @@ class QueryStructure {
 
     // =============================== OTHER METHODS ================================
     def addNode(node: QueryNode): Unit = {
-        this._nodes += (node.getName -> node)
+        this._nodes += (node.getNodeName -> node)
     }
 
     def addEdge(edge: QueryEdge): Unit = {
-        this._edges += (edge.getName -> edge)
+        this._edges += (edge.getEdgeName -> edge)
     }
     
     def removeNode(node: QueryNode): Unit = {
-        this._nodes -= node.getName
+        this._nodes -= node.getNodeName
     }
 
     def removeEdge(edge: QueryEdge): Unit = {
-        this._edges -= edge.getName
+        this._edges -= edge.getEdgeName
     }
     
     def getNode(name: String): Option[QueryNode] = {

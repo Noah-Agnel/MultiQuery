@@ -6,9 +6,9 @@ import  scala.util.Try
  * Supports all comparison operators for integer values
  */
 case class IntegerProp(
-  override val name    : String,
-  override val operator: Operator,
-  override val value    : Int
+  override val name     : String,
+  override val operator : Operator,
+  override val value    : Option[Int]
 ) extends Property[Int] {
 
   /**
@@ -23,6 +23,9 @@ case class IntegerProp(
       case s: String => Try(s.toInt).getOrElse(return false)
       case _ => return false
     }
+
+    if (intValue == false)
+      throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Int")
     
     operator match {
       case Operator.Equal              => intValue == value
