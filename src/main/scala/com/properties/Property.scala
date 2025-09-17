@@ -234,9 +234,12 @@ object Property {
       
       // Is string array
       val stringArray = elements.map { element =>
-          (element.startsWith("'")  && element.endsWith("'") ) ||
-          (element.startsWith("\"") && element.endsWith("\"")) ?
-           element.substring(1, element.length - 1) : element
+        if ((element.startsWith("'")  && element.endsWith("'") ) ||
+            (element.startsWith("\"") && element.endsWith("\""))) {
+          element.substring(1, element.length - 1)
+        } else {
+          element
+        }
       }
       return StringArrayProp(name, operator, stringArray)
     }
@@ -256,11 +259,13 @@ object Property {
     
     // Default to string (remove quotes if present)
     val stringValue = 
-      (cleanValue.startsWith("'") && cleanValue.endsWith("'")) ?
-        cleanValue.substring(1, cleanValue.length - 1) :
-      (cleanValue.startsWith("\"") && cleanValue.endsWith("\"")) ?
-        cleanValue.substring(1, cleanValue.length - 1) :
+      if (cleanValue.startsWith("'") && cleanValue.endsWith("'")) {
+        cleanValue.substring(1, cleanValue.length - 1)
+      } else if (cleanValue.startsWith("\"") && cleanValue.endsWith("\"")) {
+        cleanValue.substring(1, cleanValue.length - 1)
+      } else {
         cleanValue
+      }
     
     StringProp(name, operator, stringValue)
   }
