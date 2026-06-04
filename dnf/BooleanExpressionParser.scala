@@ -128,7 +128,7 @@ class AdvancedBooleanExpressionParser extends BooleanExpressionParser {
       case Success(expr, _) => 
         ParseResult.Success(expr)
       case failure => 
-        ParseResult.Error(failure.toString, 1, 1, input)
+        ParseResult.Error(failure.toString, failure.next.pos.line, failure.next.pos.column, input) //added column and line to error information
     }
   }
   
