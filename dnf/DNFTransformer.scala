@@ -24,7 +24,7 @@ class DNFTransformer {
    */
   def toDNF(expr: BooleanExpression): BooleanExpression = {
     val step1 = pushNegationsInward(expr)
-    val step2 = distributeOrOverAnd(step1)
+    val step2 = distributeAndOverOr(step1)
     val step3 = simplify(step2)
     step3
   }
@@ -73,42 +73,37 @@ class DNFTransformer {
   }
   
   /**
-   * Step 2: Distribute disjunctions over conjunctions
-   * - A ∨ (B ∧ C) becomes (A ∨ B) ∧ (A ∨ C)
+   * Step 2: Distribute conjunctions over disjunctions
+   * (A ∨ B) ∧ (A ∨ C) becomes A ∨ (B ∧ C)
    * This step converts the expression to DNF
   */
-  private def distributeOrOverAnd(expr: BooleanExpression): BooleanExpression = expr match {
+  private def distributeAndOverOr(expr: BooleanExpression): BooleanExpression = expr match {
     case Variable(name)    => Variable(name)
     case Constant(value)   => Constant(value)
-    case Negation(operand) => Negation(distributeOrOverAnd(operand))
+    case Negation(operand) => Negation(distributeAndOverOr(operand))
     case Conjunction(left, right) => 
-      Conjunction(distributeOrOverAnd(left), distributeOrOverAnd(right))
+      val leftDist  = distributeAndOverOr(left)
+      val rightDist = distributeAndOverOr(right)
+
+      (leftDist, rightDist) match {
+          // (A ∨ B) ∧ C = (A ∧ C) ∨ (B ∧ C)
+          case (Disjunction(a, b), c) =>
+              Disjunction(
+                  distributeAndOverOr(Conjunction(a, c)),
+                  distributeAndOverOr(Conjunction(b, c))
+              )
+          // A ∧ (B ∨ C) = (A ∧ B) ∨ (A ∧ C)
+          case (a, Disjunction(b, c)) =>
+              Disjunction(
+                  distributeAndOverOr(Conjunction(a, b)),
+                  distributeAndOverOr(Conjunction(a, c))
+              )
+          // no distribution needed
+          case (a, b) => Conjunction(a, b)
+        }
+
     case Disjunction(left, right) => 
-      val leftDist  = distributeOrOverAnd(left)
-      val rightDist = distributeOrOverAnd(right)
-      distributeOr(leftDist, rightDist)
-  }
-  
-  /**
-   * Helper method to distribute OR over AND
-   * Handles the core distribution logic for DNF conversion
-   */
-  private def distributeOr(left: BooleanExpression, right: BooleanExpression): BooleanExpression = {
-    (left, right) match {
-      case (Conjunction(a, b), c) => 
-        // (A ∧ B) ∨ C = (A ∨ C) ∧ (B ∨ C)
-        Conjunction(
-          distributeOr(a, c),
-          distributeOr(b, c)
-        )
-      case (a, Conjunction(b, c)) => 
-        // A ∨ (B ∧ C) = (A ∨ B) ∧ (A ∨ C)
-        Conjunction(
-          distributeOr(a, b),
-          distributeOr(a, c)
-        )
-      case (a, b) => Disjunction(a, b)
-    }
+      Disjunction(distributeAndOverOr(left), distributeAndOverOr(right))
   }
   
   /**
