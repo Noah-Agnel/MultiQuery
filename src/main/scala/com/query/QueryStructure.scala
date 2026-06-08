@@ -8,6 +8,7 @@ class QueryStructure {
     private var _nodeInEdges   : Map[String, Array[String]] = Map.empty[String, Array[String]]
     private var _nodeOutEdges  : Map[String, Array[String]] = Map.empty[String, Array[String]]
     private var _nodeInOutEdges: Map[String, Array[String]] = Map.empty[String, Array[String]]
+    private var _whereClause   : Option[WhereClause]        = None
 
     // =============================== CONSTRUCTORS ================================
     def this(nodes: Map[String, QueryNode], edges: Map[String, QueryEdge]) = {
@@ -141,6 +142,12 @@ class QueryStructure {
         ).sorted)
     }
 
+    def setWhereClause(wc: WhereClause): Unit = {
+        this._whereClause = Some(wc)
+    }
+
+    def getWhereClause: Option[WhereClause] = _whereClause
+
     // =============================== TO STRING ================================
     override def toString: String = {
         val sb = new StringBuilder()
@@ -160,7 +167,18 @@ class QueryStructure {
         }
         sb.append("\t}\n")
         
-        sb.append(")")
+        sb.append(")\n")
+
+        // Add where clause if present
+        this.getWhereClause.foreach { wc =>
+            sb.append("--- WHERE CLAUSE ---\n")
+            sb.append(s"DNF Expression: ${wc.getExpression}\n")
+            sb.append(s"Conditions:\n")
+            wc.getConditions.foreach { case (letter, (node, prop)) =>
+                sb.append(s"  $letter -> node='$node', condition=$prop\n")
+            }
+        }
+
         sb.toString
     }
 }
