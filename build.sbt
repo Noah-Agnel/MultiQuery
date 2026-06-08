@@ -17,11 +17,18 @@ libraryDependencies ++= Seq(
   "software.amazon.awssdk" % "s3"               % "2.17.52",
   "org.apache.hadoop"      % "hadoop-aws"       % "3.3.2",
   "org.apache.hadoop"      % "hadoop-common"    % "3.3.2",
-  "com.amazonaws"          % "aws-java-sdk-bundle" % "1.12.262"
+  "com.amazonaws"          % "aws-java-sdk-bundle" % "1.12.262",
+  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
 )
 
 
-Compile / unmanagedJars += file("libraries/util-9.0-9.0.20210312.jar")
+Compile / unmanagedJars ++= Seq(
+  file("libraries/util-9.0-9.0.20210312.jar"),
+  file("libraries/ast-9.0-9.0.20210312.jar"),
+  file("libraries/expressions-9.0-9.0.20210312.jar"),
+  file("libraries/parser-9.0-9.0.20210312.jar")
+)
+Compile / unmanagedSourceDirectories += baseDirectory.value / "dnf"
 
 assembly / assemblyMergeStrategy := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
