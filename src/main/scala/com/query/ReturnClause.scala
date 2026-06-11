@@ -40,4 +40,17 @@ class ReturnClause {
     def removeEdge(edgeName: String): Unit = {
         this._edges = this._edges - edgeName
     }
+
+    // =============================== TO STRING ================================
+
+    override def toString: String = {
+        val sb = new StringBuilder()
+        sb.append("nodes={")
+        _nodes.foreach { case (name, _) => sb.append(name).append(" ") }
+        sb.append("}\n")
+        sb.append("edges={")
+        _edges.foreach { case (name, _) => sb.append(name).append(" ") }
+        sb.append("}")
+        sb.toString
+    }
 }
