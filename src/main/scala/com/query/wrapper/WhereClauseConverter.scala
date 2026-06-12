@@ -12,7 +12,7 @@ package com.query.wrapper
 import org.opencypher.v9_0.expressions._
 import dnf.{BooleanExpressionParser, DNFTransformer}
 import com.query.WhereClause
-import com.properties.{Property => Prop, IntegerProp, StringProp, StringArrayProp, Operator}
+import com.properties.{Property => Prop, IntegerProp, StringProp, DoubleProp, StringArrayProp, Operator}
 
 object WhereClauseConverter {
 
@@ -153,19 +153,19 @@ object WhereClauseConverter {
 
                 // n.name < 'Paris'
                 case LessThan(Property(Variable(node), PropertyKeyName(prop)), StringLiteral(value)) =>
-                    (node, StringProp.LessThan(prop, value))
+                    (node, StringProp.lessThan(prop, value))
 
                 // n.name <= 'Paris'
                 case LessThanOrEqual(Property(Variable(node), PropertyKeyName(prop)), StringLiteral(value)) =>
-                    (node, StringProp.LessThanOrEqual(prop, value))
+                    (node, StringProp.lessThanOrEqual(prop, value))
 
                 // n.name > 'Paris'
                 case GreaterThan(Property(Variable(node), PropertyKeyName(prop)), StringLiteral(value)) =>
-                    (node, StringProp.GreaterThan(prop, value))
+                    (node, StringProp.greaterThan(prop, value))
 
                 // n.name >= 'Paris'
                 case GreaterThanOrEqual(Property(Variable(node), PropertyKeyName(prop)), StringLiteral(value)) =>
-                    (node, StringProp.GreaterThanOrEqual(prop, value))
+                    (node, StringProp.greaterThanOrEqual(prop, value))
 
                 case other =>
                     throw new IllegalArgumentException(s"Unsupported WHERE condition: $other")
