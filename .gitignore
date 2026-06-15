@@ -12,6 +12,7 @@ networks/terrorism/temporal_mri_import
 networks/terrorism/config/config.json
 docker/postgres-data/
 docker/warehouse/
+maildir/
 
 __pycache__/
 *.py[cod]
