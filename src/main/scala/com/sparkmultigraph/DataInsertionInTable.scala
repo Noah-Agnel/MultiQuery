@@ -23,7 +23,7 @@ object DataInsertionInTable {
             System.exit(1)
         }
 
-        // Get database name from command line arguments
+        // Get database name from command line arguments 
         val dbName             = args(0)
         val fileWarehouseName  = args(1)
         
@@ -35,13 +35,24 @@ object DataInsertionInTable {
         val nodesDF            = dataframesCreation(spark, filesMap("nodes"))
         val edgesDF            = dataframesCreation(spark, filesMap("edges"))     
         val staticEdges        = edgesDF("static")("edges_static_props").where(col("source_id") !== col("target_id"))
-        val nodesLabels        = nodesDF("static")
+        val staticNodesLabels  = nodesDF("static")
+            .values
+            .map(_.select("node_id", "labels"))
+            .reduce(_.union(_))
+        val dynamicEdges       = edgesDF("dynamic")("edges_dynamic_props").where(col("source_id") !== col("target_id"))
+        val dynamicNodesLabels = nodesDF("dynamic")
             .values
             .map(_.select("node_id", "labels"))
             .reduce(_.union(_))
 
+        // Combining static and dynamic nodes/edges
+        val allEdges = staticEdges.union(dynamicEdges)
+            .dropDuplicates("edge_id")
+        val allNodesLabels = staticNodesLabels.union(dynamicNodesLabels)
+            .dropDuplicates("node_id")
+
         // Matrix containing nodes and edges' labels and ids
-        val nodesEdgesMatrix   = nodesAndEdgesLabelsAndIdsConfiguration(nodesLabels, staticEdges)
+        val nodesEdgesMatrix   = nodesAndEdgesLabelsAndIdsConfiguration(allNodesLabels, allEdges)
 
         // Node label pair table creation
         val nodeLabelPairTab   = nodeLabelPairPopulation(nodesEdgesMatrix)
@@ -69,6 +80,7 @@ object DataInsertionInTable {
         nodeStaticPropsTablePopulation(nodesDF("static"), dbName, spark)
         edgeStaticPropsTablePopulation(edgesDF("static"), dbName, spark)
 
-        // TODO continue dynamic props
+        nodeDynamicPropsTablePopulation(nodesDF("dynamic"), dbName, spark)
+        edgeDynamicPropsTablePopulation(edgesDF("dynamic"), dbName, spark)
     }
 }
