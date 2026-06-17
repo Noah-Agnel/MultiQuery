@@ -12,7 +12,7 @@ package com.query.wrapper
 import org.opencypher.v9_0.expressions._
 import dnf.{BooleanExpressionParser, DNFTransformer}
 import com.query.WhereClause
-import com.properties.{Property => Prop, IntegerProp, StringProp, StringArrayProp, Operator}
+import com.properties.{Property => Prop, IntegerProp, StringProp, DoubleProp, StringArrayProp, Operator}
 
 object WhereClauseConverter {
 
@@ -66,7 +66,8 @@ object WhereClauseConverter {
              * Converts an atomic openCypher expression into a (nodeOrEdgeName, Property) tuple
              */
             def extractCondition(expr: Expression): (String, Prop[_]) = expr match {
-
+                
+                // ========== INTEGER CONDITIONS ==========
                 // n.age = 25
                 case Equals(Property(Variable(node), PropertyKeyName(prop)), SignedDecimalIntegerLiteral(value)) =>
                     (node, IntegerProp(prop, Operator.Equal, value.toInt))
@@ -91,6 +92,40 @@ object WhereClauseConverter {
                 case LessThanOrEqual(Property(Variable(node), PropertyKeyName(prop)), SignedDecimalIntegerLiteral(value)) =>
                     (node, IntegerProp(prop, Operator.LessThanOrEqual, value.toInt))
 
+                // n.age IS NULL
+                case IsNull(Property(Variable(node), PropertyKeyName(prop))) =>
+                    (node, IntegerProp(prop, Operator.IsNull, 0))
+
+                // n.age IS NOT NULL
+                case IsNotNull(Property(Variable(node), PropertyKeyName(prop))) =>
+                    (node, IntegerProp(prop, Operator.IsNotNull, 0))
+
+                // ========== DOUBLE CONDITIONS ==========
+                // n.age = 25.0
+                case Equals(Property(Variable(node), PropertyKeyName(prop)), DecimalDoubleLiteral(value)) =>
+                    (node, DoubleProp(prop, Operator.Equal, value.toDouble))
+
+                // n.age <> 25.0
+                case NotEquals(Property(Variable(node), PropertyKeyName(prop)), DecimalDoubleLiteral(value)) =>
+                    (node, DoubleProp(prop, Operator.NotEqual, value.toDouble))
+
+                // n.age > 25
+                case GreaterThan(Property(Variable(node), PropertyKeyName(prop)), DecimalDoubleLiteral(value)) =>
+                    (node, DoubleProp(prop, Operator.GreaterThan, value.toDouble))
+
+                // n.age >= 25
+                case GreaterThanOrEqual(Property(Variable(node), PropertyKeyName(prop)), DecimalDoubleLiteral(value)) =>
+                    (node, DoubleProp(prop, Operator.GreaterThanOrEqual, value.toDouble))
+
+                // n.age < 25
+                case LessThan(Property(Variable(node), PropertyKeyName(prop)), DecimalDoubleLiteral(value)) =>
+                    (node, DoubleProp(prop, Operator.LessThan, value.toDouble))
+
+                // n.age <= 25
+                case LessThanOrEqual(Property(Variable(node), PropertyKeyName(prop)), DecimalDoubleLiteral(value)) =>
+                    (node, DoubleProp(prop, Operator.LessThanOrEqual, value.toDouble))
+
+                // ========== STRING CONDITIONS ==========
                 // n.name = 'Paris'
                 case Equals(Property(Variable(node), PropertyKeyName(prop)), StringLiteral(value)) =>
                     (node, StringProp.equal(prop, value))
@@ -111,18 +146,26 @@ object WhereClauseConverter {
                 case Contains(Property(Variable(node), PropertyKeyName(prop)), StringLiteral(value)) =>
                     (node, StringProp.contains(prop, value))
 
-                // n.age IS NULL
-                case IsNull(Property(Variable(node), PropertyKeyName(prop))) =>
-                    (node, IntegerProp(prop, Operator.IsNull, 0))
-
-                // n.age IS NOT NULL
-                case IsNotNull(Property(Variable(node), PropertyKeyName(prop))) =>
-                    (node, IntegerProp(prop, Operator.IsNotNull, 0))
-
                 // n.city IN ['Paris', 'Lyon']
                 case In(Property(Variable(node), PropertyKeyName(prop)), ListLiteral(values)) =>
                     val stringValues = values.collect { case StringLiteral(v) => v }.toArray
                     (node, StringArrayProp.In(prop, stringValues))
+
+                // n.name < 'Paris'
+                case LessThan(Property(Variable(node), PropertyKeyName(prop)), StringLiteral(value)) =>
+                    (node, StringProp.lessThan(prop, value))
+
+                // n.name <= 'Paris'
+                case LessThanOrEqual(Property(Variable(node), PropertyKeyName(prop)), StringLiteral(value)) =>
+                    (node, StringProp.lessThanOrEqual(prop, value))
+
+                // n.name > 'Paris'
+                case GreaterThan(Property(Variable(node), PropertyKeyName(prop)), StringLiteral(value)) =>
+                    (node, StringProp.greaterThan(prop, value))
+
+                // n.name >= 'Paris'
+                case GreaterThanOrEqual(Property(Variable(node), PropertyKeyName(prop)), StringLiteral(value)) =>
+                    (node, StringProp.greaterThanOrEqual(prop, value))
 
                 case other =>
                     throw new IllegalArgumentException(s"Unsupported WHERE condition: $other")
