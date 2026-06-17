@@ -9,6 +9,7 @@ class QueryStructure {
     private var _nodeOutEdges  : Map[String, Array[String]] = Map.empty[String, Array[String]]
     private var _nodeInOutEdges: Map[String, Array[String]] = Map.empty[String, Array[String]]
     private var _whereClause   : Option[WhereClause]        = None
+    private var _returnClause  : Option[ReturnClause]       = None
 
     // =============================== CONSTRUCTORS ================================
     def this(nodes: Map[String, QueryNode], edges: Map[String, QueryEdge]) = {
@@ -28,6 +29,20 @@ class QueryStructure {
         this._nodeInEdges    = nodeInEdges
         this._nodeOutEdges   = nodeOutEdges
         this._nodeInOutEdges = nodeInOutEdges
+    }
+
+    def this(
+        nodes         : Map[String, QueryNode],
+        edges         : Map[String, QueryEdge],
+        nodeInEdges   : Map[String, Array[String]],
+        nodeOutEdges  : Map[String, Array[String]],
+        nodeInOutEdges: Map[String, Array[String]],
+        whereClause   : Option[WhereClause],
+        returnClause  : Option[ReturnClause]
+    ) = {
+        this(nodes, edges, nodeInEdges, nodeOutEdges, nodeInOutEdges)
+        this._whereClause = whereClause
+        this._returnClause = returnClause
     }
 
     // =============================== GETTERS AND SETTERS ================================
@@ -148,6 +163,12 @@ class QueryStructure {
 
     def getWhereClause: Option[WhereClause] = _whereClause
 
+    def setReturnClause(rc: ReturnClause): Unit = {
+        this._returnClause = Some(rc)
+    }
+
+    def getReturnClause: Option[ReturnClause] = _returnClause
+
     // =============================== TO STRING ================================
     override def toString: String = {
         val sb = new StringBuilder()
@@ -177,6 +198,12 @@ class QueryStructure {
             wc.getConditions.foreach { case (letter, (node, prop)) =>
                 sb.append(s"  $letter -> node='$node', condition=$prop\n")
             }
+        }
+
+        // Add return clause if present
+        this.getReturnClause.foreach { rc =>
+            sb.append("--- RETURN CLAUSE ---\n")
+            sb.append(rc.toString)
         }
 
         sb.toString

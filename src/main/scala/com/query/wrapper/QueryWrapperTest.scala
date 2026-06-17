@@ -22,7 +22,7 @@ object QueryWrapperTest extends App {
     // Test 1 - simple integer condition
     testQuery(
         "Simple integer condition",
-        "MATCH (n:Person) WHERE n.age > 25 RETURN n"
+        "MATCH (n:Person) WHERE n.age > 25 RETURN n.age"
     )
     
     // Test 2 - simple string equality

@@ -49,14 +49,11 @@ object CypherQueryWrapper {
                     case None => // WHERE is optional, if none given do nothing
                 }
 
-                //returnClause not implemented yet (add it to QueryStructure?)
-                /*
                 // RETURN
                 returnClause match {
-                    case Some(r) => queryStructure.setReturnFields(ReturnClauseConverter.convert(r))
+                    case Some(r) => queryStructure.setReturnClause(ReturnClauseConverter.convert(r, queryStructure))
                     case None    => return Left("No RETURN clause found")
                 }
-                */
                 return Right(queryStructure)
         }
     }
