@@ -5,6 +5,7 @@
  * into a ReturnClause object containing:
  *
  * The nodes and edges that the query must return
+ * The properties of the nodes/edges that the query must return
  */
 
 package com.query.wrapper
@@ -19,7 +20,7 @@ object ReturnClauseConverter {
     /**
      * Converts a Return AST clause into a ReturnClause object
      *
-     * @param returnClause           the Return AST clause from openCypher front-end
+     * @param returnClause    the Return AST clause from openCypher front-end
      */
     def convert(returnClause: Return, qs: QueryStructure): ReturnClause = {
         val rc = new ReturnClause()
@@ -30,7 +31,10 @@ object ReturnClauseConverter {
                     // check if it's a node or edge in the QueryStructure
                     qs.getNode(name).foreach(node => rc.addNode(name, node))
                     qs.getEdge(name).foreach(edge => rc.addEdge(name, edge))
-                case _ => // ignore property expressions for now (e.g. n.name)
+                case Property(Variable(varName), PropertyKeyName(propName)) =>
+                    val alias = item.alias.map(_.name).getOrElse(s"$varName.$propName")
+                    rc.addProperty(alias, varName, propName)
+                case _ => // ignore unsupported expressions for now
             }
         }
 
