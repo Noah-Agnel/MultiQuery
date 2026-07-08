@@ -10,10 +10,12 @@
 #
 # Node files are routed into nodesDF  via the "node" substring check.
 # Edge files are routed into edgesDF  via the absence of "node".
+#
+# "email" is no longer a node type — every email message is now
+# represented as timestamped edges between Person nodes instead.
 
 _NODE_FILE_SEGMENT = {
     "person": "person_nodes_static_props",
-    "email" : "email_nodes_static_props",
 }
 
 # Single segment for the edges file — all edge types share one file per batch.
@@ -28,7 +30,7 @@ def _node_to_dict(node) -> dict:
     ---------------------------------
     {
         "node_id"     : int,          # stable integer ID
-        "labels"      : [str, ...],   # e.g. ["Person"] or ["Email"]
+        "labels"      : [str, ...],   # e.g. ["Person"]
         "static_props": { ... },      # all remaining fields (type-specific)
         "is_active"   : bool
     }
@@ -43,7 +45,6 @@ def _node_to_dict(node) -> dict:
         "node_id"     : node_id,
         "labels"      : labels,
         "static_props": node_dict,   # Person → {"email": ...}
-                                     # Email  → {"time":  ...}
         "is_active"   : True
     }
 
@@ -54,7 +55,7 @@ def static_nodes_json_creation(nodes: dict) -> dict:
 
     Args:
         nodes (dict): dictionary of node lists keyed by node type
-                      e.g. {"person": [...], "email": [...]}
+                      e.g. {"person": [...]}
 
     Returns:
         dict: {node_type: [record, ...]} ready for JSON serialisation.
@@ -78,10 +79,11 @@ def _edge_to_dict(edge: dict) -> dict:
     Internal edge schema (from EdgesManaging)
     ------------------------------------------
     {
-        "edge_id": str (SHA-256 hex),
-        "src"    : int,
-        "dst"    : int,
-        "type"   : str   # SENT | RECEIVED | CCED | BCCED
+        "edge_id"  : str (SHA-256 hex),
+        "src"      : int,
+        "dst"      : int,
+        "type"     : str,   # TO | CC | BCC
+        "timestamp": str,   # ISO-8601 timestamp of the email
     }
 
     Output schema
@@ -91,13 +93,13 @@ def _edge_to_dict(edge: dict) -> dict:
         "source_id"   : int,
         "target_id"   : int,
         "edge_type"   : str,
-        "static_props": {}    # empty — relationship semantics live in edge_type
+        "static_props": { "timestamp": str }
     }
 
-    static_props is intentionally empty: the old pipeline stored cc/bcc lists
-    here because every edge was Person→Person. Now that each recipient
-    relationship is its own typed edge (RECEIVED / CCED / BCCED), no extra
-    payload is needed.
+    static_props now carries the email's timestamp: with no Email node to
+    hold it, the send time has to live directly on the edge. It lands in
+    the edge_static_props Iceberg table as a datetime_value row keyed by
+    property_name="timestamp" — no schema change required on that side.
     """
     edge = edge.copy()
     return {
@@ -105,7 +107,7 @@ def _edge_to_dict(edge: dict) -> dict:
         "source_id"   : edge["src"],
         "target_id"   : edge["dst"],
         "edge_type"   : edge["type"],
-        "static_props": {}
+        "static_props": {"timestamp": edge["timestamp"]}
     }
 
 

@@ -90,7 +90,8 @@ def save_batch(node_manager, edge_manager, output_path, batch_num):
     """
     Serialises the current batch of nodes and edges to JSON files.
 
-    One file is written per node type (person, email) and one for all edges.
+    One file is written for the person node type (the only node type now
+    that Email is no longer represented as a node) and one for all edges.
     Empty node lists are skipped — the Spark pipeline would read an empty
     array fine, but there is no point creating the file.
 

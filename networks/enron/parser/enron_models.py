@@ -42,29 +42,6 @@ class Person:
     def get_email(self) -> str:
         return self.email
 
-
-@dataclass
-class Email:
-    """
-    Represents an individual email message.
-
-    Attributes:
-        time   (str): ISO-8601 timestamp string
-        labels (list[str]): always ["Email"]
-        id     (int): auto-incremented integer, assigned on first creation
-    """
-    def __init__(self, time: str):
-        self.labels = ["Email"]
-        self.time   = time
-        self.id     = None          # assigned by NodesManaging on first insertion
-
-    def get_id(self) -> int | None:
-        return self.id
-
-    def get_time(self) -> str:
-        return self.time
-
-
 # ============================================================
 # NODES MANAGING
 # ============================================================
@@ -77,22 +54,18 @@ class NodesManaging:
     Person nodes are deduplicated: the same email address always maps to the
     same integer ID, even across batches (as long as the same NodesManaging
     instance is used).
-
-    Email nodes are never deduplicated — every parsed email message produces
-    a unique Email node.
     """
     def __init__(self):
         # node lists flushed to JSON at each batch boundary
         self.nodes: dict[str, list] = {
-            'person': [],
-            'email' : [],
+            'person': []
         }
         # deduplication registry: email_address -> int node_id
         self._person_registry: dict[str, int] = {}
 
     def reset_nodes(self):
         """Clear the per-batch lists without touching the deduplication registry."""
-        self.nodes = {'person': [], 'email': []}
+        self.nodes = {'person': []}
 
     # ----------------------------------------------------------
     # Person helpers
@@ -118,25 +91,6 @@ class NodesManaging:
         self.nodes['person'].append(person)
         return person.id
 
-    # ----------------------------------------------------------
-    # Email helpers
-    # ----------------------------------------------------------
-
-    def add_email(self, email_node: Email) -> int | None:
-        """
-        Adds an Email node (always unique — no deduplication).
-
-        Returns:
-            The integer node_id, or None if the timestamp is missing.
-        """
-        if not email_node.get_time():
-            return None
-
-        email_node.id = next_node_id()
-        self.nodes['email'].append(email_node)
-        return email_node.id
-
-
 # ============================================================
 # EDGES MANAGING
 # ============================================================
@@ -144,14 +98,15 @@ class NodesManaging:
 @dataclass
 class EdgesManaging:
     """
-    Tracks Sent and Received edges, deduplicating by content hash.
-
+    Tracks direct Person -> Person edges, deduplicating by content hash.
+    Each edge represents one email message reaching one recipient, and
+    carries that message's timestamp directly.
+ 
     Edge types
     ----------
-    SENT        : Person  -> Email   (the sender)
-    RECEIVED    : Person  -> Email   (a To recipient)
-    CCED        : Person  -> Email   (a CC recipient)
-    BCCED       : Person  -> Email   (a BCC recipient)
+    TO   : Person -> Person   (sender -> a To recipient)
+    CC   : Person -> Person   (sender -> a CC recipient)
+    BCC  : Person -> Person   (sender -> a BCC recipient)
     """
     def __init__(self):
         self.edges: list[dict]  = []
@@ -161,53 +116,55 @@ class EdgesManaging:
         """Clear the per-batch edge list without touching the seen-hash set."""
         self.edges = []
 
-    def _add(self, src_id: int, dst_id: int, edge_type: str, extra: dict | None = None):
+    def _add(self, src_id: int, dst_id: int, edge_type: str, timestamp: str, extra: dict | None = None):
         """
         Internal helper — builds, deduplicates, and stores one edge.
-
+ 
         Args:
-            src_id    : integer ID of the source node
-            dst_id    : integer ID of the destination node
-            edge_type : one of SENT / RECEIVED / CCED / BCCED
+            src_id    : integer ID of the source (sender) node
+            dst_id    : integer ID of the destination (recipient) node
+            edge_type : one of TO / CC / BCC
+            timestamp : ISO-8601 timestamp string of the email, included in
+                        the hash so two distinct messages between the same
+                        pair are never collapsed into one edge
             extra     : optional dict of additional static properties
         """
         if src_id is None or dst_id is None:
             return
-
-        payload = {'src': src_id, 'dst': dst_id, 'type': edge_type}
+        if src_id == dst_id:
+            return  # skip self-addressed edges (e.g. sender CCs themselves)
+ 
+        payload = {'src': src_id, 'dst': dst_id, 'type': edge_type, 'timestamp': timestamp}
         edge_hash = hashlib.sha256(
             json.dumps(payload, sort_keys=True).encode('utf-8')
         ).hexdigest()
-
+ 
         if edge_hash in self._seen:
             return
-
+ 
         self._seen.add(edge_hash)
         edge = {
-            'edge_id': edge_hash,
-            'src'    : src_id,
-            'dst'    : dst_id,
-            'type'   : edge_type,
+            'edge_id'  : edge_hash,
+            'src'      : src_id,
+            'dst'      : dst_id,
+            'type'     : edge_type,
+            'timestamp': timestamp,
         }
         if extra:
             edge.update(extra)
         self.edges.append(edge)
 
-    def add_sent_edge(self, sender_id: int, email_id: int):
-        """SENT : Person -> Email"""
-        self._add(sender_id, email_id, 'SENT')
-
-    def add_received_edge(self, recipient_id: int, email_id: int):
-        """RECEIVED : Person -> Email  (To field)"""
-        self._add(recipient_id, email_id, 'RECEIVED')
-
-    def add_cced_edge(self, person_id: int, email_id: int):
-        """CCED : Person -> Email  (CC field)"""
-        self._add(person_id, email_id, 'CCED')
-
-    def add_bcced_edge(self, person_id: int, email_id: int):
-        """BCCED : Person -> Email  (BCC field)"""
-        self._add(person_id, email_id, 'BCCED')
+    def add_received_edge(self, sender_id: int, recipient_id: int, timestamp: str):
+        """TO  : Person -> Person  (To field)"""
+        self._add(sender_id, recipient_id, 'TO', timestamp)
+ 
+    def add_cced_edge(self, sender_id: int, person_id: int, timestamp: str):
+        """CC  : Person -> Person  (CC field)"""
+        self._add(sender_id, person_id, 'CC', timestamp)
+ 
+    def add_bcced_edge(self, sender_id: int, person_id: int, timestamp: str):
+        """BCC : Person -> Person  (BCC field)"""
+        self._add(sender_id, person_id, 'BCC', timestamp)
 
 
 # ============================================================
@@ -225,45 +182,42 @@ def nodes_edges_creation(
 ):
     """
     Converts one parsed email into nodes and edges.
-
+ 
     Graph produced per email
     ------------------------
-    - 1 Email node
     - 1 Person node for the sender  (deduplicated across all emails)
     - 1 Person node per recipient   (deduplicated)
-    - 1 SENT edge    : sender     -> Email
-    - N RECEIVED edges: recipient -> Email  (for each To address)
-    - N CCED edges   : person     -> Email  (for each CC address)
-    - N BCCED edges  : person     -> Email  (for each BCC address)
+    - N TO edges  : sender -> recipient, timestamped  (for each To address)
+    - N CC edges  : sender -> person,    timestamped  (for each CC address)
+    - N BCC edges : sender -> person,    timestamped  (for each BCC address)
+ 
+    No Email node is created — the message's timestamp is carried directly
+    on each edge it produces.
     """
     # 1. Create / retrieve sender node
     sender_id = node_manager.add_person(Person(sender))
     if sender_id is None:
         return
-
-    # 2. Create Email node (always unique)
-    email_node = Email(timestamp)
-    email_id   = node_manager.add_email(email_node)
-    if email_id is None:
+ 
+    # 2. A timestamp is required directly now (no Email node to hold it)
+    if not timestamp:
         return
-
-    # 3. SENT edge: sender -> email
-    edge_manager.add_sent_edge(sender_id, email_id)
-
-    # 4. RECEIVED edges: each To recipient -> email
+ 
+    # 3. RECEIVED edges (TO): sender -> each To recipient
     for recipient in recipients:
         r_id = node_manager.add_person(Person(recipient))
         if r_id is not None:
-            edge_manager.add_received_edge(r_id, email_id)
-
-    # 5. CCED edges
+            edge_manager.add_received_edge(sender_id, r_id, timestamp)
+ 
+    # 4. CCED edges (CC)
     for person in cc:
         p_id = node_manager.add_person(Person(person))
         if p_id is not None:
-            edge_manager.add_cced_edge(p_id, email_id)
-
-    # 6. BCCED edges
+            edge_manager.add_cced_edge(sender_id, p_id, timestamp)
+ 
+    # 5. BCCED edges (BCC)
     for person in bcc:
         p_id = node_manager.add_person(Person(person))
         if p_id is not None:
-            edge_manager.add_bcced_edge(p_id, email_id)
+            edge_manager.add_bcced_edge(sender_id, p_id, timestamp)
+ 
