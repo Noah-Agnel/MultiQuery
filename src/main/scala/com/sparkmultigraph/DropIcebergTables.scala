@@ -47,7 +47,9 @@ object DropIcebergTables {
         "node_static_props",
         "node_dynamic_props",
         "edge_static_props",
-        "edge_dynamic_props"
+        "edge_dynamic_props",
+        "metadata_node_labels",
+        "metadata_edge_types"
       )
       
       tableNames.foreach { tableName =>

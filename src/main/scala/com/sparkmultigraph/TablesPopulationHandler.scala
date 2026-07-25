@@ -470,4 +470,29 @@ object TablesPopulationHandler {
             }  
         }}
     }
+
+    // ========================================================================================================================
+    // METADATA TABLES POPULATION
+    // ========================================================================================================================
+
+
+    def metadataNodeLabelsPopulation(nodesLabels: DataFrame): DataFrame = {
+    val windowSpec = Window.orderBy("label")
+    
+    nodesLabels
+        .select(explode(col("labels")).as("label"))
+        .distinct()
+        .withColumn("label_id", (row_number().over(windowSpec) - 1).cast("int"))
+        .select("label_id", "label")
+    }
+
+    def metadataEdgeTypesPopulation(staticEdges: DataFrame): DataFrame = {
+    val windowSpec = Window.orderBy("edge_type")
+    
+    staticEdges
+        .select(col("edge_type"))
+        .distinct()
+        .withColumn("type_id", (row_number().over(windowSpec) - 1).cast("int"))
+        .select("type_id", "edge_type")
+    }
 }   

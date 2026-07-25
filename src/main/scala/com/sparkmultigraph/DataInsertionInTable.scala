@@ -70,5 +70,20 @@ object DataInsertionInTable {
         edgeStaticPropsTablePopulation(edgesDF("static"), dbName, spark)
 
         // TODO continue dynamic props
+
+        // --- Populate Metadata DataFrames ---
+        val metaNodeLabelsTab = metadataNodeLabelsPopulation(nodesLabels)
+        val metaEdgeTypesTab  = metadataEdgeTypesPopulation(staticEdges)
+
+        // --- Save Metadata Data ---
+        metaNodeLabelsTab
+          .write
+          .mode("overwrite") // Or "append" depending on your batch strategy
+          .insertInto(s"$dbName.metadata_node_labels")
+
+        metaEdgeTypesTab
+          .write
+          .mode("overwrite")
+          .insertInto(s"$dbName.metadata_edge_types")
     }
 }
