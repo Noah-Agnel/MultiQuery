@@ -1,0 +1,5 @@
+{
+    "csv_dir"    : "../data",
+    "output_path": "../temporal_mri_import",
+    "batch_size" : 50000
+}
