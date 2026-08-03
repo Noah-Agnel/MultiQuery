@@ -32,6 +32,8 @@ object CreateIcebergTables {
       createNodeDynamicPropsTable(spark, dbName)
       createEdgeStaticPropsTable(spark, dbName)
       createEdgeDynamicPropsTable(spark, dbName)
+      createMetadataNodeLabelsTable(spark, dbName)
+      createMetadataEdgeTypesTable(spark, dbName)
 
       // Verify tables were created
       println(s"Successfully created tables in $dbName:")
@@ -193,5 +195,27 @@ object CreateIcebergTables {
         )
       """
     )
+  }
+
+  private def createMetadataNodeLabelsTable(spark: SparkSession, dbName: String): Unit = {
+    println("Creating metadata_node_labels table...")
+    spark.sql(
+      s"""
+        CREATE TABLE IF NOT EXISTS $dbName.metadata_node_labels (
+          label_id    INT NOT NULL,
+          label       STRING NOT NULL
+        ) USING ICEBERG
+      """)
+  }
+
+  private def createMetadataEdgeTypesTable(spark: SparkSession, dbName: String): Unit = {
+    println("Creating metadata_edge_types table...")
+    spark.sql(
+      s"""
+        CREATE TABLE IF NOT EXISTS $dbName.metadata_edge_types (
+          type_id     INT NOT NULL,
+          edge_type   STRING NOT NULL
+        ) USING ICEBERG
+      """)
   }
 } 
