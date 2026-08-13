@@ -7,6 +7,7 @@ import  scala.collection.mutable
 import  org.apache.spark.sql.Dataset
 import  org.apache.spark.sql.Column
 import  org.apache.spark.sql.Row
+import  org.apache.spark.sql.DataFrame
 import  org.apache.spark.sql.functions._
 import  org.apache.spark.sql.expressions.Window
 
@@ -50,6 +51,8 @@ object TablesPopulationHandler {
     val PRVL: String = "property_value"
     val SNPI: String = "snproperty_id"
     val SEPI: String = "seproperty_id"
+    val DNPI: String = "dnproperty_id"
+    val DEPI: String = "deproperty_id"
 
     val STVL: String = "string_value"
     val NMLV: String = "numeric_value"
@@ -186,7 +189,7 @@ object TablesPopulationHandler {
             .withColumn(CRAT, current_timestamp())
 
         // WE ARE ADDING THE ID BASED ON THE NODES AND EDGES TYPE
-        val windowSpec   = Window.orderBy(MILB, MALB, EILS, EOLS)
+        val windowSpec = Window.partitionBy(MILB, MALB).orderBy(EILS, EOLS)
         nodesEdgesMatrix = nodesEdgesMatrix.withColumn(PAID, dense_rank().over(windowSpec))
 
         return nodesEdgesMatrix
@@ -310,7 +313,7 @@ object TablesPopulationHandler {
     // ========================================================================================================================
     // STATIC NODE PROPERTIES DATAFRAME CREATION
     // ========================================================================================================================
-    def componentOfNodePropsDSCreation(dset:Dataset[Row], fieldMappings: Array[(String, String)]): Dataset[Row] = {
+    def componentOfStaticNodePropsDSCreation(dset:Dataset[Row], fieldMappings: Array[(String, String)]): Dataset[Row] = {
         val fieldDfs   = fieldMappings.map { case (fieldName, fieldType) => {
             var baseDF = dset.select(
                 col(NDID),
@@ -356,12 +359,12 @@ object TablesPopulationHandler {
         nodesDS: mutable.Map[String, Dataset[Row]],
         dbName : String,
         spark  : SparkSession
-    ){
+    ): Unit = {
         nodesDS.filter{ case (_, ds) => ds.columns.contains("static_props") }.foreach{ case (ds_type, ds) => {
             val staticPropsSchema = ds.schema("static_props").dataType.asInstanceOf[StructType]
             val fieldMappings     = fieldMappingCreation(ds, "static_props")
 
-            var fieldDFs = componentOfNodePropsDSCreation(ds, fieldMappings)
+            var fieldDFs = componentOfStaticNodePropsDSCreation(ds, fieldMappings)
             if (!fieldDFs.isEmpty){
                 val maxIdOption = spark.sql(s"SELECT MAX($SNPI) as max_id FROM $dbName.node_static_props").head()
                 val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
@@ -395,9 +398,103 @@ object TablesPopulationHandler {
     }
 
     // ========================================================================================================================
+    // DYNAMIC NODE PROPERTIES DATAFRAME CREATION
+    // ========================================================================================================================
+
+    def componentOfDynamicNodePropsDSCreation(dset:Dataset[Row], fieldMappings: Array[(String, String)]): Dataset[Row] = {
+        val fieldDfs   = fieldMappings.map { case (fieldName, fieldType) => {
+            var baseDF = dset.select(
+                col(NDID),
+                col(LABL),
+                col(ISAC),
+                col("from"),
+                col("to"),
+                lit(fieldName                   ).as(PRNM),
+                col(s"dynamic_props.${fieldName}").as(PRVL)
+            ).filter(col(PRVL).isNotNull)
+        
+            fieldType match {
+                case "STRING"          => baseDF = newColumnsConfiguration(baseDF, str_val  = col(PRVL))
+                case "DOUBLE"          => baseDF = newColumnsConfiguration(baseDF, num_val  = col(PRVL))
+                case "TIMESTAMP"       => baseDF = newColumnsConfiguration(baseDF, dat_val  = col(PRVL)) 
+                case "ARRAY_STRING"    => baseDF = newColumnsConfiguration(baseDF, astr_val = col(PRVL))
+                case "ARRAY_DOUBLE"    => baseDF = newColumnsConfiguration(baseDF, anum_val = col(PRVL))
+                case "ARRAY_TIMESTAMP" => baseDF = newColumnsConfiguration(baseDF, adat_val = col(PRVL))
+                case _                 => baseDF = newColumnsConfiguration(baseDF, str_val  = col(PRVL))
+            }
+        
+            baseDF.select(
+                col(NDID),
+                col(ISAC),
+                col(PRNM),
+                col(STVL),
+                col(NMLV),
+                col(DTLV),
+                col(STVS),
+                col(NLVS),
+                col(DTVS),
+                col("from").cast(TimestampType),
+                col("to").cast(TimestampType)
+            )}
+        }
+        return fieldDfs.reduce(_ union _).orderBy(asc(NDID))
+    }
+
+
+    /**
+     * Populates the node dynamic properties table.
+     * 
+     * @param  nodesDS the Dataset[Row] containing the nodes
+     * @return the Dataset[Row] with the node dynamic properties
+    **/
+    def nodeDynamicPropsTablePopulation(
+        nodesDS: mutable.Map[String, Dataset[Row]],
+        dbName : String,
+        spark  : SparkSession
+    ): Unit = {
+        nodesDS.filter{ case (_, ds) => ds.columns.contains("dynamic_props") }.foreach{ case (ds_type, ds) => {
+            val staticPropsSchema = ds.schema("dynamic_props").dataType.asInstanceOf[StructType]
+            val fieldMappings     = fieldMappingCreation(ds, "dynamic_props")
+
+            var fieldDFs = componentOfDynamicNodePropsDSCreation(ds, fieldMappings)
+            if (!fieldDFs.isEmpty){
+                val maxIdOption = spark.sql(s"SELECT MAX($DNPI) as max_id FROM $dbName.node_dynamic_props").head()
+                val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
+                val startId     = maxId + 1
+                fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
+                fieldDFs        = fieldDFs
+                    .withColumn(DNPI, (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
+                    .withColumn(CRAT, current_timestamp())
+                    .select(
+                       col(DNPI),
+                       col(NDID), 
+                       col(PRNM),
+                       col(STVL),
+                       col(NMLV),
+                       col(DTLV),
+                       col(STVS),
+                       col(NLVS),
+                       col(DTVS),
+                       col("from"),
+                       col("to"),
+                       col(CRAT)
+                    )
+
+                // Saving the data into the table
+                fieldDFs.write
+                   .mode("append")
+                   .insertInto(s"$dbName.node_dynamic_props")
+
+                println(s"Inserted ${fieldDFs.count()} rows into $dbName.node_dynamic_props")  
+            }  
+        }}
+    }
+
+
+    // ========================================================================================================================
     // STATIC EDGE PROPERTIES DATAFRAME CREATION
     // ========================================================================================================================
-    def componentOfEdgePropsDSCreation(dset:Dataset[Row], fieldMappings: Array[(String, String)]): Dataset[Row] = {
+    def componentOfStaticEdgePropsDSCreation(dset:Dataset[Row], fieldMappings: Array[(String, String)]): Dataset[Row] = {
         val fieldDfs   = fieldMappings.map { case (fieldName, fieldType) => {
             var baseDF = dset.select(
                 col(ELID),
@@ -434,12 +531,12 @@ object TablesPopulationHandler {
         edgesDS : mutable.Map[String, Dataset[Row]],
         dbName  : String,
         spark   : SparkSession
-    ){
+    ): Unit = {
         edgesDS.filter{ case (_, ds) => ds.columns.contains("static_props") }.foreach{ case (ds_type, ds) => {
             val staticPropsSchema = ds.schema("static_props").dataType.asInstanceOf[StructType]
             val fieldMappings     = fieldMappingCreation(ds, "static_props")
 
-            var fieldDFs = componentOfEdgePropsDSCreation(ds, fieldMappings)
+            var fieldDFs = componentOfStaticEdgePropsDSCreation(ds, fieldMappings)
             if (!fieldDFs.isEmpty){
                 val maxIdOption = spark.sql(s"SELECT MAX($SEPI) as max_id FROM $dbName.edge_static_props").head()   
                 val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
@@ -469,6 +566,92 @@ object TablesPopulationHandler {
                 println(s"Inserted ${fieldDFs.count()} rows into $dbName.edge_static_props")  
             }  
         }}
+    }
+
+    // ========================================================================================================================
+    // DYNAMIC EDGE PROPERTIES DATAFRAME CREATION
+    // ========================================================================================================================
+
+    def componentOfDynamicEdgePropsDSCreation(dset:Dataset[Row], fieldMappings: Array[(String, String)]): Dataset[Row] = {
+        val fieldDfs   = fieldMappings.map { case (fieldName, fieldType) => {
+            var baseDF = dset.select(
+                col(ELID),
+                col("from"),
+                col("to"),
+                lit(fieldName                   ).as(PRNM),
+                col(s"dynamic_props.${fieldName}").as(PRVL)
+            ).filter(col(PRVL).isNotNull)
+
+            fieldType match {
+                case "STRING"          => baseDF = newColumnsConfiguration(baseDF, str_val  = col(PRVL))
+                case "DOUBLE"          => baseDF = newColumnsConfiguration(baseDF, num_val  = col(PRVL))
+                case "TIMESTAMP"       => baseDF = newColumnsConfiguration(baseDF, dat_val  = col(PRVL)) 
+                case "ARRAY_STRING"    => baseDF = newColumnsConfiguration(baseDF, astr_val = col(PRVL))
+                case "ARRAY_DOUBLE"    => baseDF = newColumnsConfiguration(baseDF, anum_val = col(PRVL))
+                case "ARRAY_TIMESTAMP" => baseDF = newColumnsConfiguration(baseDF, adat_val = col(PRVL))
+                case _                 => baseDF = newColumnsConfiguration(baseDF, str_val  = col(PRVL))
+            }
+
+            baseDF.select(
+                col(ELID),
+                col(PRNM),
+                col(STVL),
+                col(NMLV),
+                col(DTLV),
+                col(STVS),
+                col(NLVS),
+                col(DTVS),
+                col("from").cast(TimestampType),
+                col("to").cast(TimestampType)
+            )}
+        }
+
+        return fieldDfs.reduce(_ union _).orderBy(asc(ELID))
+    }
+
+
+    def edgeDynamicPropsTablePopulation(
+        edgesDS : mutable.Map[String, Dataset[Row]],
+        dbName  : String,
+        spark   : SparkSession
+    ): Unit = {
+        edgesDS.filter{ case (_, ds) => ds.columns.contains("dynamic_props") }.foreach{ case (ds_type, ds) => {
+            val staticPropsSchema = ds.schema("dynamic_props").dataType.asInstanceOf[StructType]
+            val fieldMappings     = fieldMappingCreation(ds, "dynamic_props")
+
+            var fieldDFs = componentOfDynamicEdgePropsDSCreation(ds, fieldMappings)
+            if (!fieldDFs.isEmpty){
+                val maxIdOption = spark.sql(s"SELECT MAX($DEPI) as max_id FROM $dbName.edge_dynamic_props").head()   
+                val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
+                val startId     = maxId + 1
+                fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
+                fieldDFs        = fieldDFs
+                    .withColumn(DEPI, (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
+                    .withColumn(CRAT, current_timestamp())      
+                    .select(
+                        col(DEPI),
+                        col(ELID),
+                        col(PRNM),
+                        col(STVL),
+                        col(NMLV),
+                        col(DTLV),
+                        col(STVS),
+                        col(NLVS),
+                        col(DTVS),
+                        col("from"),
+                        col("to"),
+                        col(CRAT)
+                    )
+
+                // Saving the data into the table
+                fieldDFs.write
+                   .mode("append")
+                   .insertInto(s"$dbName.edge_dynamic_props")
+
+                println(s"Inserted ${fieldDFs.count()} rows into $dbName.edge_dynamic_props")  
+            }  
+        }
+        }
     }
 
     // ========================================================================================================================

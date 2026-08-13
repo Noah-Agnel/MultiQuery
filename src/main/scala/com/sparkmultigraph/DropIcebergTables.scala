@@ -18,6 +18,7 @@ object DropIcebergTables {
 
     try {
       // Check if database exists
+      /*
       val databases = spark.sql("SHOW DATABASES").collect()
       val dbExists  = databases.exists(_.getString(0) == dbName)
       
@@ -25,6 +26,7 @@ object DropIcebergTables {
         println(s"Database $dbName does not exist!")
         return
       }
+      
       
       spark.sql(s"USE $dbName")
       
@@ -38,7 +40,7 @@ object DropIcebergTables {
       
       println(s"Found ${tables.length} tables in $dbName:")
       tables.foreach(row => println(s"  - ${row.getString(1)}"))
-      
+      */
       // Drop each table
       val tableNames = Array(
         "node_label_pair",
