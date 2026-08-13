@@ -38,14 +38,15 @@ object CompatibilityDomainEngine {
       .filter(isCompatibleUDF(col("target_bitmask"), col("query_bitmask")))
       .select("q1", "q2", "pair_id")
 
-    // 5. Join to get target node IDs and group into map structure
+    // 5. Join to get target node IDs, flattened for downstream multijoin
     matchingPairs
       .join(spark.table(s"$dbName.node_pair_matches"), "pair_id")
-      .groupBy("q1", "q2")
-      .agg(
-        collect_set(
-          struct(col("source_node_id").as("t1"), col("target_node_id").as("t2"))
-        ).as("candidate_pairs")
+      .select(
+        col("q1"),
+        col("q2"),
+        col("source_node_id").as("t1"),
+        col("target_node_id").as("t2")
       )
+      .distinct()
   }
 }
