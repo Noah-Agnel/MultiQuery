@@ -16,13 +16,6 @@ from panama_json  import (
 # ============================================================
 # CONFIGURATION
 # ============================================================
-# Standalone config, separate from Enron's config.json, e.g.:
-#
-# {
-#     "csv_dir"    : "../data",
-#     "output_path": "../temporal_mri_import",
-#     "batch_size" : 50000
-# }
 
 config      = json.load(open("../config/config.json"))
 csv_dir     = config.get("csv_dir", "../data")
@@ -37,7 +30,7 @@ EDGES_CSV          = f"{csv_dir}/all_edges.csv"
 
 
 # ============================================================
-# CSV ROW COUNTING (for tqdm progress bars)
+# CSV ROW COUNTING
 # ============================================================
 
 def _count_rows(path: str) -> int:
@@ -51,9 +44,7 @@ def _count_rows(path: str) -> int:
 
 def save_node_batch(node_manager: NodesManaging, output_path: str, batch_num: int):
     """
-    Serialises the current batch of node objects to static + dynamic JSON
-    files. Node types with no dynamic props (Officer, Intermediary,
-    Address) simply produce no dynamic file for that batch.
+    Serialises the current batch of node objects to static + dynamic JSON files.
     """
     static_json  = static_nodes_json_creation(node_manager.nodes)
     dynamic_json = dynamic_nodes_json_creation(node_manager.nodes)
@@ -77,24 +68,24 @@ def save_node_batch(node_manager: NodesManaging, output_path: str, batch_num: in
 
 def save_edge_batch(edge_manager: EdgesManaging, output_path: str, batch_num: int):
     """
-    Serialises the current batch of edges. Edges with a populated
-    start_date/end_date go to the dynamic file; all edges (including
-    those) also go to the static file, since edge_type itself is always
-    known regardless of whether the validity window is.
+    Serialises the current batch of edges.
+    Saves static edges, and saves dynamic edges ONLY if dynamic_records is non-empty.
     """
     static_records  = static_edges_json_creation(edge_manager.edges)
     dynamic_records = dynamic_edges_json_creation(edge_manager.edges)
 
-    path = edge_filename("static", output_path, batch_num)
-    with open(path, "w") as f:
+    # 1. Always write static edges
+    static_path = edge_filename("static", output_path, batch_num)
+    with open(static_path, "w") as f:
         json.dump(static_records, f, indent=4)
-    print(f"  Wrote {len(static_records):>6} static edges  -> {path}")
+    print(f"  Wrote {len(static_records):>6} static edges  -> {static_path}")
 
+    # 2. Write dynamic edges ONLY if there are records (avoiding empty [] files which cause 0-column Spark DataFrames)
     if dynamic_records:
-        path = edge_filename("dynamic", output_path, batch_num)
-        with open(path, "w") as f:
+        dynamic_path = edge_filename("dynamic", output_path, batch_num)
+        with open(dynamic_path, "w") as f:
             json.dump(dynamic_records, f, indent=4)
-        print(f"  Wrote {len(dynamic_records):>6} dynamic edges  -> {path}")
+        print(f"  Wrote {len(dynamic_records):>6} dynamic edges -> {dynamic_path}")
 
 
 # ============================================================
@@ -103,14 +94,9 @@ def save_edge_batch(edge_manager: EdgesManaging, output_path: str, batch_num: in
 
 def ingest_node_csv(path: str, row_to_node, node_manager: NodesManaging,
                      output_path: str, batch_num_start: int) -> int:
-    """
-    Streams one node-type CSV, adding a node per row, flushing to JSON
-    every batch_size rows. Returns the next free batch_num so the
-    caller can keep numbering contiguous across node types.
-    """
-    batch_num   = batch_num_start
+    batch_num     = batch_num_start
     rows_in_batch = 0
-    total_rows  = _count_rows(path)
+    total_rows    = _count_rows(path)
 
     with open(path, encoding="utf-8", errors="ignore") as f:
         reader = csv.DictReader(f)

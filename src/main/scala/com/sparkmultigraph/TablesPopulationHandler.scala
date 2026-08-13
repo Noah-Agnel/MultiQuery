@@ -32,15 +32,8 @@ object TablesPopulationHandler {
     val MAND: String = "max_node"
     val MILB: String = "min_labels"
     val MALB: String = "max_labels"
-    val ELIN: String = "edge_in"
-    val ELOU: String = "edge_out"
-    val EIIN: String = "edge_in_id"
-    val EIOU: String = "edge_out_id"
-    val ISMI: String = "is_source_min"
     val ISAC: String = "is_active"
-    val EIIL: String = "edge_in_id_list"
     val EOIL: String = "edge_out_id_list"
-    val EILS: String = "edge_in_list"
     val EOLS: String = "edge_out_list"
     val NMID: String = "nodes_match_id"
     val PAID: String = "pair_id"
@@ -149,47 +142,36 @@ object TablesPopulationHandler {
     def nodesAndEdgesLabelsAndIdsConfiguration(
         nodesLabels:Dataset[Row],
         edgesDS    :Dataset[Row]
-    ):Dataset[Row] = 
+    ):Dataset[Row] =
     {
         var nodesEdgesMatrix = edgesDS
            .join(nodesLabels.alias("src"), col(SRID) === col("src.node_id"))
            .join(nodesLabels.alias("tgt"), col(TAID) === col("tgt.node_id"))
            .select(
                col(SRID),
-               col(TAID), 
+               col(TAID),
                col(ELID),
                col("src.labels").alias(SRLB),
                col("tgt.labels").alias(TALB),
                col(ELTP)
            )
-           .withColumn(ISMI, col(SRID) < col(TAID))
-           // WE CONSIDER AS THE FIRST NODE THE ONE WITH THE MIN ID COMPARED 
-           // TO THE SECOND ONE. IF THE MIN ID IS AS TARGET NODE THEN WE 
-           // CONSIDER THE EDGES AS INCOMING, OTHERWISE AS OUTGOING.
-           .select(
-                when( col(ISMI), col(SRID)).otherwise(col(TAID)).alias(MIND),
-                when( col(ISMI), col(TAID)).otherwise(col(SRID)).alias(MAND),
-                when( col(ISMI), col(SRLB)).otherwise(col(TALB)).alias(MILB),
-                when( col(ISMI), col(TALB)).otherwise(col(SRLB)).alias(MALB),
-                when( col(ISMI), col(ELTP)).alias(ELIN),
-                when( col(ISMI), col(ELID)).alias(EIIN),
-                when(!col(ISMI), col(ELTP)).alias(ELOU),
-                when(!col(ISMI), col(ELID)).alias(EIOU)
+           .withColumn(NMID, concat(col(SRID), lit("_"), col(TAID)))
+           // WE GROUP BY THE TRUE (SOURCE, TARGET) DIRECTION FROM THE EDGE DATA
+           // ITSELF, RATHER THAN CANONICALISING BY NODE ID, SO THAT EDGE
+           // DIRECTIONALITY IS PRESERVED FOR DIRECTED QUERY MATCHING.
+           .groupBy(NMID, SRID, TAID, SRLB, TALB)
+           .agg(
+                collect_list(col(ELTP)).alias(EOLS),
+                collect_list(col(ELID)).alias(EOIL)
             )
-            .withColumn(NMID, concat(col(MIND), lit("_"), col(MAND)))
-            // WE GROIP IN ORDER TO CREATE ALL THE INCOMING AND OUTGOING EDGES
-            // FOR EACH NODE PAIR.
-            .groupBy(NMID, MIND, MAND, MILB, MALB)
-            .agg(
-                collect_list(when(col(ELIN).isNotNull, col(ELIN))).alias(EILS),
-                collect_list(when(col(EIIN).isNotNull, col(EIIN))).alias(EIIL),
-                collect_list(when(col(ELOU).isNotNull, col(ELOU))).alias(EOLS),
-                collect_list(when(col(EIOU).isNotNull, col(EIOU))).alias(EOIL)
-            )
+            .withColumnRenamed(SRID, MIND)
+            .withColumnRenamed(TAID, MAND)
+            .withColumnRenamed(SRLB, MILB)
+            .withColumnRenamed(TALB, MALB)
             .withColumn(CRAT, current_timestamp())
 
         // WE ARE ADDING THE ID BASED ON THE NODES AND EDGES TYPE
-        val windowSpec = Window.partitionBy(MILB, MALB).orderBy(EILS, EOLS)
+        val windowSpec = Window.partitionBy(MILB, MALB).orderBy(EOLS)
         nodesEdgesMatrix = nodesEdgesMatrix.withColumn(PAID, dense_rank().over(windowSpec))
 
         return nodesEdgesMatrix
@@ -215,12 +197,15 @@ object TablesPopulationHandler {
             else                            arr.groupBy(identity).mapValues(_.size)
         })
 
-        // TODO YOU NEED TO MANAGE THE UNDIRECTED CASE
+        // Direction is now preserved at the row level: MILB/MALB are the true
+        // src/dst labels for this pair_id, and EOLS holds the src->dst edge
+        // types. The reverse direction (if it exists) is its own row with
+        // MILB/MALB swapped, so edge_2_1_types is no longer populated here.
         val node_label_pair = nodesEdgesMatrix
-            .select(PAID, MILB, MALB, EILS, EOLS, CRAT)
+            .select(PAID, MILB, MALB, EOLS, CRAT)
             .dropDuplicates()
-            .withColumn(E12T, arrayToFrequencyMap(col(EILS)))
-            .withColumn(E21T, arrayToFrequencyMap(col(EOLS)))
+            .withColumn(E12T, arrayToFrequencyMap(col(EOLS)))
+            .withColumn(E21T, lit(null).cast(MapType(StringType, IntegerType)))
             .withColumn(EBIT, lit(null))
             .select(
                 col(PAID), 
@@ -301,12 +286,11 @@ object TablesPopulationHandler {
     **/
     def matchEdgesPopulation(
         nodesEdgesMatrix:Dataset[Row]
-    ):Dataset[Row] = 
+    ):Dataset[Row] =
     {
-        val edges_matches_in  = matchEdgesInOrOutPopulation(nodesEdgesMatrix, EIIL, EILS)
-        val edges_matches_out = matchEdgesInOrOutPopulation(nodesEdgesMatrix, EOIL, EOLS)
-
-        return edges_matches_in.union(edges_matches_out)
+        // Every edge now belongs to exactly one (true) direction group, so a
+        // single explode over EOLS/EOIL captures every edge exactly once.
+        return matchEdgesInOrOutPopulation(nodesEdgesMatrix, EOIL, EOLS)
     }
 
 
