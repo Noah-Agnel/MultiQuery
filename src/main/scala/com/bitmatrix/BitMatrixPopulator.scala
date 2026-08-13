@@ -28,8 +28,8 @@ object BitMatrixPopulator {
 
     val nodes = queryStructure.getNodes
     val rows = queryStructure.getEdges.values.map { edge =>
-      val q1 = edge.getSourceNode
-      val q2 = edge.getTargetNode
+      val q1 = edge.getSrcNodeName
+      val q2 = edge.getDstNodeName
 
       val srcLabels = nodes.get(q1).map(_.getLabels).getOrElse(Array.empty[String]).toSeq
       val dstLabels = nodes.get(q2).map(_.getLabels).getOrElse(Array.empty[String]).toSeq

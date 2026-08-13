@@ -30,10 +30,10 @@ object ReaderWriterHandler {
     {
         // 1.1 FILESYSTEM CONFIGURATION
         val conf = spark.sparkContext.hadoopConfiguration
-        //val path = new Path(s"s3a://${bucketName}/")
-        //val fs   = FileSystem.get(path.toUri, conf)
-        val path = new Path(new java.io.File(bucketName).getAbsolutePath)
-        val fs   = FileSystem.getLocal(conf)
+        val path = new Path(s"s3a://${bucketName}/")
+        val fs   = FileSystem.get(path.toUri, conf)
+        //val path = new Path(new java.io.File(bucketName).getAbsolutePath)
+        //val fs   = FileSystem.getLocal(conf)
 
         // 1.2 FILES NAME READING
         val filesPath = fs.listStatus(path).map(path => path.getPath)

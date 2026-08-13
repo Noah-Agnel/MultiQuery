@@ -34,14 +34,32 @@ object DataInsertionInTable {
         val filesMap           = pathsReadingFromMinio(spark, fileWarehouseName)
         val nodesDF            = dataframesCreation(spark, filesMap("nodes"))
         val edgesDF            = dataframesCreation(spark, filesMap("edges"))     
-        val staticEdges        = edgesDF("static")("edges_static_props").where(col("source_id") !== col("target_id"))
-        val nodesLabels        = nodesDF("static")
+        val staticEdges        = edgesDF("static")("edges_static_props")
+          .where(col("source_id") !== col("target_id"))
+          .select("edge_id", "source_id", "target_id", "edge_type")
+
+        val staticNodesLabels        = nodesDF("static")
             .values
             .map(_.select("node_id", "labels"))
             .reduce(_.union(_))
 
+        val dynamicEdges       = edgesDF("dynamic")("edges_dynamic_props")
+          .where(col("source_id") !== col("target_id"))
+          .select("edge_id", "source_id", "target_id", "edge_type")
+
+        val dynamicNodesLabels = nodesDF("dynamic")
+            .values
+            .map(_.select("node_id", "labels"))
+            .reduce(_.union(_))
+
+        // Combining static and dynamic nodes/edges
+        val allEdges = staticEdges.union(dynamicEdges)
+            .dropDuplicates("edge_id")
+        val allNodesLabels = staticNodesLabels.union(dynamicNodesLabels)
+            .dropDuplicates("node_id")
+
         // Matrix containing nodes and edges' labels and ids
-        val nodesEdgesMatrix   = nodesAndEdgesLabelsAndIdsConfiguration(nodesLabels, staticEdges)
+        val nodesEdgesMatrix   = nodesAndEdgesLabelsAndIdsConfiguration(allNodesLabels, allEdges)
 
         // Node label pair table creation
         val nodeLabelPairTab   = nodeLabelPairPopulation(nodesEdgesMatrix)
@@ -66,14 +84,17 @@ object DataInsertionInTable {
           .mode("append")
           .insertInto(s"$dbName.edges_matches")
         
+        // --- Populate Statuc property DataFrames ---
         nodeStaticPropsTablePopulation(nodesDF("static"), dbName, spark)
         edgeStaticPropsTablePopulation(edgesDF("static"), dbName, spark)
 
-        // TODO continue dynamic props
+        // --- Populate Dynamic property DataFrames ---
+        nodeDynamicPropsTablePopulation(nodesDF("dynamic"), dbName, spark)
+        edgeDynamicPropsTablePopulation(edgesDF("dynamic"), dbName, spark)
 
         // --- Populate Metadata DataFrames ---
-        val metaNodeLabelsTab = metadataNodeLabelsPopulation(nodesLabels)
-        val metaEdgeTypesTab  = metadataEdgeTypesPopulation(staticEdges)
+        val metaNodeLabelsTab = metadataNodeLabelsPopulation(allNodesLabels)
+        val metaEdgeTypesTab  = metadataEdgeTypesPopulation(allEdges)
 
         // --- Save Metadata Data ---
         metaNodeLabelsTab

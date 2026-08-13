@@ -72,10 +72,10 @@ object CreateIcebergTables {
     spark.sql(
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.node_pair_matches (
-          nodes_match_id    STRING NOT NULL,
+          nodes_match_id    STRING,
           pair_id           BIGINT NOT NULL,
-          source_node_id    STRING NOT NULL,
-          target_node_id    STRING NOT NULL,
+          source_node_id    STRING,
+          target_node_id    STRING,
           created_at        TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
@@ -89,10 +89,10 @@ object CreateIcebergTables {
     spark.sql(
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.edges_matches (
-          edge_id           STRING NOT NULL,
+          edge_id           STRING,
           pair_id           BIGINT NOT NULL,
-          nodes_match_id    STRING NOT NULL,
-          edge_type         STRING NOT NULL,
+          nodes_match_id    STRING,
+          edge_type         STRING,
           created_at        TIMESTAMP NOT NULL
         ) USING ICEBERG
         PARTITIONED BY (
@@ -107,7 +107,7 @@ object CreateIcebergTables {
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.node_static_props (
           snproperty_id   BIGINT NOT NULL,
-          node_id         STRING NOT NULL,
+          node_id         STRING,
           property_name   STRING NOT NULL,
           string_value    STRING,
           numeric_value   DOUBLE,
@@ -116,7 +116,7 @@ object CreateIcebergTables {
           numeric_values  ARRAY<DOUBLE>,
           datetime_values ARRAY<TIMESTAMP>,
           created_at      TIMESTAMP NOT NULL,
-          is_active       BOOLEAN NOT NULL
+          is_active       BOOLEAN
         ) USING ICEBERG
         PARTITIONED BY (
           bucket(16, node_id)
@@ -131,7 +131,7 @@ object CreateIcebergTables {
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.node_dynamic_props (
           dnproperty_id   BIGINT NOT NULL,
-          node_id         STRING NOT NULL,
+          node_id         STRING,
           property_name   STRING NOT NULL,
           string_value    STRING,
           numeric_value   DOUBLE,
@@ -156,7 +156,7 @@ object CreateIcebergTables {
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.edge_static_props (
           seproperty_id   BIGINT NOT NULL,
-          edge_id         STRING NOT NULL,
+          edge_id         STRING,
           property_name   STRING NOT NULL,
           string_value    STRING,
           numeric_value   DOUBLE,
@@ -178,7 +178,7 @@ object CreateIcebergTables {
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.edge_dynamic_props (
           deproperty_id   BIGINT NOT NULL,
-          edge_id         STRING NOT NULL,
+          edge_id         STRING,
           property_name   STRING NOT NULL,
           string_value    STRING,
           numeric_value   DOUBLE,
@@ -203,7 +203,7 @@ object CreateIcebergTables {
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.metadata_node_labels (
           label_id    INT NOT NULL,
-          label       STRING NOT NULL
+          label       STRING
         ) USING ICEBERG
       """)
   }
@@ -214,7 +214,7 @@ object CreateIcebergTables {
       s"""
         CREATE TABLE IF NOT EXISTS $dbName.metadata_edge_types (
           type_id     INT NOT NULL,
-          edge_type   STRING NOT NULL
+          edge_type   STRING
         ) USING ICEBERG
       """)
   }
