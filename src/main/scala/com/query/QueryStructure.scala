@@ -195,8 +195,8 @@ class QueryStructure {
             sb.append("--- WHERE CLAUSE ---\n")
             sb.append(s"DNF Expression: ${wc.getExpression}\n")
             sb.append(s"Conditions:\n")
-            wc.getConditions.foreach { case (letter, (node, prop)) =>
-                sb.append(s"  $letter -> node='$node', condition=$prop\n")
+            wc.getConditions.foreach { case (letter, condition) =>
+                sb.append(s"  $letter -> $condition\n")
             }
         }
 
