@@ -269,4 +269,16 @@ object Property {
     
     StringProp(name, operator, stringValue)
   }
-} 
+
+  /**
+   * The PropertyType a given Property instance was built with
+   */
+  def typeOf(prop: Property[_]): PropertyType = prop match {
+    case _: StringProp       => PropertyType.StringType
+    case _: IntegerProp      => PropertyType.IntegerType
+    case _: DoubleProp       => PropertyType.DoubleType
+    case _: StringArrayProp  => PropertyType.StringArrayType
+    case _: IntegerArrayProp => PropertyType.IntegerArrayType
+    case _: DoubleArrayProp  => PropertyType.DoubleArrayType
+  }
+}
