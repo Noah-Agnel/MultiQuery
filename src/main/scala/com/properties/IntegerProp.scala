@@ -15,6 +15,17 @@ case class IntegerProp(
    * Evaluates this integer property against a given value
    */
   override def evaluate(actualValue: Any): Boolean = {
+    // Int can't hold null itself, so a null property value is handled up front
+    // (matches SQL/Cypher three-valued NULL semantics: every comparison except
+    // IS [NOT] NULL is unknown/not-a-match) rather than crashing during conversion.
+    if (actualValue == null) {
+      return operator match {
+        case Operator.IsNull    => true
+        case Operator.IsNotNull => false
+        case _                  => false
+      }
+    }
+
     val intValue = actualValue match {
       case i: Int    => i
       case l: Long   => l.toInt
@@ -23,7 +34,7 @@ case class IntegerProp(
       case s: String => Try(s.toInt).getOrElse(throw new IllegalArgumentException(s"Cannot convert $s to Int"))
       case _         => throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Int")
     }
-    
+
     operator match {
       case Operator.Equal              => intValue == value
       case Operator.NotEqual           => intValue != value
@@ -31,8 +42,8 @@ case class IntegerProp(
       case Operator.GreaterThanOrEqual => intValue >= value
       case Operator.LessThan           => intValue < value
       case Operator.LessThanOrEqual    => intValue <= value
-      case Operator.IsNull             => actualValue == null
-      case Operator.IsNotNull          => actualValue != null
+      case Operator.IsNull             => false
+      case Operator.IsNotNull          => true
       case _ => false
     }
   }

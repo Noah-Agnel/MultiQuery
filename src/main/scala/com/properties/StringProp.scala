@@ -25,28 +25,32 @@ case class StringProp(
     }
 
     operator match {
-      case Operator.Equal              => stringValue == value
-      case Operator.NotEqual           => stringValue != value
-        
       case Operator.IsNull             => stringValue == null
       case Operator.IsNotNull          => stringValue != null
-      
-      case Operator.GreaterThan        => stringValue > value 
+
+      // A null property value makes every other comparison unknown/not-a-match
+      // (matches SQL/Cypher three-valued NULL semantics), rather than NPE-ing.
+      case _ if stringValue == null    => false
+
+      case Operator.Equal              => stringValue == value
+      case Operator.NotEqual           => stringValue != value
+
+      case Operator.GreaterThan        => stringValue > value
       case Operator.GreaterThanOrEqual => stringValue >= value
-        
+
       case Operator.LessThan           => stringValue < value
       case Operator.LessThanOrEqual    => stringValue <= value
-        
+
       case Operator.Contains           => stringValue.contains(value)
       case Operator.StartsWith         => stringValue.startsWith(value)
       case Operator.EndsWith           => stringValue.endsWith(value)
-      
+
       case Operator.In                 => value.contains(stringValue)
       case Operator.NotIn              => !value.contains(stringValue)
-        
+
       case _ => false
     }
-  } 
+  }
 
   override def toString: String = s"$name ${operator.symbol} '$value'"
 }

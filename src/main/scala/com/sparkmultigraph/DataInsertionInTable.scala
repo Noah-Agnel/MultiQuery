@@ -11,6 +11,7 @@ import  org.apache.spark.sql.expressions.Window
 import  com.sparkconfiguration.SparkHandler._
 import  com.sparkmultigraph.TablesPopulationHandler._
 import  com.sparkmultigraph.ReaderWriterHandler._
+import  com.sparkmultigraph.bitmatrix.{BitMatrixConfig, BitMatrixPopulator}
 
 
 object DataInsertionInTable {
@@ -58,8 +59,15 @@ object DataInsertionInTable {
         val allNodesLabels = staticNodesLabels.union(dynamicNodesLabels)
             .dropDuplicates("node_id")
 
-        // Matrix containing nodes and edges' labels and ids
-        val nodesEdgesMatrix   = nodesAndEdgesLabelsAndIdsConfiguration(allNodesLabels, allEdges)
+        // Matrix containing nodes and edges' labels and ids. pair_id is produced by a dense_rank
+        // that starts at 1 on every run, so it's offset by the table's current max here -- the same
+        // pattern already used below for snproperty_id/edge_id etc. -- otherwise a second ingestion
+        // run collides its pair_ids with the first run's, silently merging unrelated edge-type
+        // signatures together in node_label_pair/node_pair_matches/edges_matches.
+        var nodesEdgesMatrix    = nodesAndEdgesLabelsAndIdsConfiguration(allNodesLabels, allEdges)
+        val maxPairIdOption     = spark.sql(s"SELECT MAX(pair_id) as max_id FROM $dbName.node_label_pair").head()
+        val maxPairId           = Option(maxPairIdOption.getAs[Long]("max_id")).getOrElse(0L)
+        nodesEdgesMatrix        = nodesEdgesMatrix.withColumn("pair_id", col("pair_id") + lit(maxPairId))
 
         // Node label pair table creation
         val nodeLabelPairTab   = nodeLabelPairPopulation(nodesEdgesMatrix)
@@ -106,5 +114,9 @@ object DataInsertionInTable {
           .write
           .mode("overwrite")
           .insertInto(s"$dbName.metadata_edge_types")
+
+        // --- Populate Target Bit Matrix table (so queries read it instead of recomputing it) ---
+        val bitMatrixConfig = BitMatrixConfig.loadFromMetadata(spark, dbName)
+        BitMatrixPopulator.populateTargetBitMatrixTable(spark, dbName, bitMatrixConfig)
     }
 }

@@ -15,6 +15,17 @@ case class DoubleProp(
    * Evaluates this double property against a given value
    */
   override def evaluate(actualValue: Any): Boolean = {
+    // Double can't hold null itself, so a null property value is handled up front
+    // (matches SQL/Cypher three-valued NULL semantics: every comparison except
+    // IS [NOT] NULL is unknown/not-a-match) rather than crashing during conversion.
+    if (actualValue == null) {
+      return operator match {
+        case Operator.IsNull    => true
+        case Operator.IsNotNull => false
+        case _                  => false
+      }
+    }
+
     val doubleValue = actualValue match {
       case d: Double => d
       case f: Float  => f.toDouble
@@ -23,7 +34,7 @@ case class DoubleProp(
       case s: String => Try(s.toDouble).getOrElse(throw new IllegalArgumentException(s"Cannot convert $s to Double"))
       case _         => throw new IllegalArgumentException(s"Cannot convert ${actualValue.getClass} to Double")
     }
-    
+
     operator match {
       case Operator.Equal              => doubleValue == value
       case Operator.NotEqual           => doubleValue != value
@@ -31,8 +42,8 @@ case class DoubleProp(
       case Operator.GreaterThanOrEqual => doubleValue >= value
       case Operator.LessThan           => doubleValue < value
       case Operator.LessThanOrEqual    => doubleValue <= value
-      case Operator.IsNull             => actualValue == null
-      case Operator.IsNotNull          => actualValue != null
+      case Operator.IsNull             => false
+      case Operator.IsNotNull          => true
       case _ => false // Other operators not supported for doubles
     }
   }

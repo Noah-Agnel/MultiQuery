@@ -18,15 +18,16 @@ object WhereClauseSparkTranslator {
    */
   def hoistableFilterColumn(conditions: Seq[LiteralCondition]): Column = {
     require(conditions.nonEmpty, "Must have at least one condition to build a filter")
-    conditions.map(lc => literalConditionColumn(lc, col(lc.prop.name))).reduce(_ && _)
+    conditions.map(lc => literalConditionColumn(lc, col(lc.prop.name), col(s"${lc.prop.name}__array"))).reduce(_ && _)
   }
 
   /**
    * The whole WHERE expression, translated into one Spark Column, for filtering rows
    * that already have every referenced variable's properties joined in.
    *
-   * @param literalColumnFor  resolves a (variable, property) pair used in a LiteralCondition
-   *                          to the Column holding its (statically typed) value.
+   * @param literalColumnFor  resolves a (variable, property) pair used in a LiteralCondition to
+   *                          a (declared-type value, array-fallback value) Column pair - see
+   *                          literalConditionColumn for why a fallback is needed.
    * @param variableColumnFor resolves a (variable, property) pair used in a VariableCondition
    *                          to a (stringValue, numericValue) Column pair - cross-variable
    *                          conditions carry no declared type, so both are loaded and
@@ -34,7 +35,7 @@ object WhereClauseSparkTranslator {
    */
   def deferredFilterColumn(
       whereClause      : WhereClause,
-      literalColumnFor : (String, String) => Column,
+      literalColumnFor : (String, String) => (Column, Column),
       variableColumnFor: (String, String) => (Column, Column)
   ): Option[Column] = {
     whereClause.getExpression.map { expr =>
@@ -47,11 +48,12 @@ object WhereClauseSparkTranslator {
 
   private def conditionColumn(
       condition        : Condition,
-      literalColumnFor : (String, String) => Column,
+      literalColumnFor : (String, String) => (Column, Column),
       variableColumnFor: (String, String) => (Column, Column)
   ): Column = condition match {
     case lc: LiteralCondition =>
-      literalConditionColumn(lc, literalColumnFor(lc.variable, lc.prop.name))
+      val (valueColumn, arrayFallbackColumn) = literalColumnFor(lc.variable, lc.prop.name)
+      literalConditionColumn(lc, valueColumn, arrayFallbackColumn)
 
     case VariableCondition(leftVar, leftProp, operator, rightVar, rightProp) =>
       val (leftStrCol, leftNumCol)   = variableColumnFor(leftVar, leftProp)
@@ -61,10 +63,30 @@ object WhereClauseSparkTranslator {
       compareUDF(leftStrCol, leftNumCol, rightStrCol, rightNumCol)
   }
 
-  private def literalConditionColumn(condition: LiteralCondition, valueColumn: Column): Column = {
+  /**
+   * A WHERE condition's declared property type comes purely from how the Cypher literal was
+   * written (e.g. `n.countries CONTAINS 'France'` always parses to a scalar StringProp, since
+   * a quoted string literal looks scalar), which doesn't necessarily match how the property is
+   * actually stored -- ICIJ's country fields, for instance, are always arrays even for a single
+   * country, so the scalar column is null for every row and the condition would silently never
+   * match. `arrayFallbackColumn` is the property's array-shaped Iceberg column (populated
+   * whenever the scalar one isn't); when the declared-type value is null, this evaluates the
+   * condition against every element of the array instead and matches if any element does
+   * (mirroring how a single-valued array is indistinguishable from a scalar).
+   */
+  private def literalConditionColumn(condition: LiteralCondition, valueColumn: Column, arrayFallbackColumn: Column): Column = {
     val prop = condition.prop
-    val evalUDF = udf((value: Any) => prop.evaluate(value))
-    evalUDF(valueColumn)
+    val evalUDF = udf((value: Any, arrayFallback: Any) => evaluateWithArrayFallback(prop, value, arrayFallback))
+    evalUDF(valueColumn, arrayFallbackColumn)
+  }
+
+  private def evaluateWithArrayFallback(prop: com.properties.Property[_], value: Any, arrayFallback: Any): Boolean = {
+    if (value != null) prop.evaluate(value)
+    else arrayFallback match {
+      case arr: Seq[_]   => arr.nonEmpty && arr.exists(elem => prop.evaluate(elem))
+      case arr: Array[_] => arr.nonEmpty && arr.exists(elem => prop.evaluate(elem))
+      case other         => prop.evaluate(other) // null, or (for an already-array-typed prop) the real value
+    }
   }
 
   private def toColumn(expr: BooleanExpression, letterColumns: Map[String, Column]): Column = expr match {

@@ -15,8 +15,8 @@ object CompatibilityDomainEngine {
     // 1. Load config from metadata tables
     val config = BitMatrixConfig.loadFromMetadata(spark, dbName)
 
-    // 2. Build Bit Matrices
-    val targetMatrix = BitMatrixPopulator.buildTargetMatrix(spark, dbName, config)
+    // 2. Read the persisted target bit matrix (built at ingestion time) and build the query matrix
+    val targetMatrix = BitMatrixPopulator.readTargetBitMatrix(spark, dbName)
     val queryMatrix  = BitMatrixPopulator.buildQueryMatrix(spark, queryStructure, config)
 
     // 3. Bitwise AND UDF: Check if target fulfills query requirements
