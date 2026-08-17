@@ -353,9 +353,8 @@ object TablesPopulationHandler {
                 val maxIdOption = spark.sql(s"SELECT MAX($SNPI) as max_id FROM $dbName.node_static_props").head()
                 val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
                 val startId     = maxId + 1
-                fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
                 fieldDFs        = fieldDFs
-                    .withColumn(SNPI, (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
+                    .withColumn(SNPI, (monotonically_increasing_id() + startId).cast(LongType))
                     .withColumn(CRAT, current_timestamp())
                     .select(
                        col(SNPI),
@@ -445,9 +444,8 @@ object TablesPopulationHandler {
                 val maxIdOption = spark.sql(s"SELECT MAX($DNPI) as max_id FROM $dbName.node_dynamic_props").head()
                 val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
                 val startId     = maxId + 1
-                fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
                 fieldDFs        = fieldDFs
-                    .withColumn(DNPI, (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
+                    .withColumn(DNPI, (monotonically_increasing_id() + startId).cast(LongType))
                     .withColumn(CRAT, current_timestamp())
                     .select(
                        col(DNPI),
@@ -525,9 +523,8 @@ object TablesPopulationHandler {
                 val maxIdOption = spark.sql(s"SELECT MAX($SEPI) as max_id FROM $dbName.edge_static_props").head()   
                 val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
                 val startId     = maxId + 1
-                fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
                 fieldDFs        = fieldDFs
-                    .withColumn(SEPI, (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
+                    .withColumn(SEPI, (monotonically_increasing_id() + startId).cast(LongType))
                     .withColumn(CRAT, current_timestamp())      
                     .select(
                         col(SEPI),
@@ -608,9 +605,8 @@ object TablesPopulationHandler {
                 val maxIdOption = spark.sql(s"SELECT MAX($DEPI) as max_id FROM $dbName.edge_dynamic_props").head()   
                 val maxId       = Option(maxIdOption.getAs[Long]("max_id")).getOrElse(0L)
                 val startId     = maxId + 1
-                fieldDFs        = fieldDFs.withColumn("row_num", monotonically_increasing_id())
                 fieldDFs        = fieldDFs
-                    .withColumn(DEPI, (row_number().over(Window.orderBy("row_num")) + startId - 1).cast(LongType))
+                    .withColumn(DEPI, (monotonically_increasing_id() + startId).cast(LongType))
                     .withColumn(CRAT, current_timestamp())      
                     .select(
                         col(DEPI),

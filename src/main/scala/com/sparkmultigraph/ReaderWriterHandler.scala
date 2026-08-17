@@ -83,33 +83,41 @@ object ReaderWriterHandler {
         //     key_1            key_2         value
         // property_type -> element_type -> dataframe
         var elementsDF: mutable.Map[String, mutable.Map[String, Dataset[Row]]] = mutable.Map.empty
-        
+        // Paths to union per (propType, mapKey) group, collected first so each group gets
+        // a single union + dropDuplicates pass instead of re-shuffling on every file added.
+        val pathsByGroup = mutable.Map.empty[(String, String), mutable.ArrayBuffer[String]]
+
         elements.foreach {case (key, paths) => {
             paths.foreach(path => {
-                println("Reading path: " + path)
                 val pathFileName  = path.split("/").last
                 val mainNameParts = pathFileName.split("_")
-                
+
                 // 1. WE ARE DEFINING THE element_type and property one
                 // THE PATH IS LIKE THIS: path_1_element_type_partition.json
-                // SO WE SELECT element_type 
+                // SO WE SELECT element_type
                 val mapKey        = mainNameParts.slice(2, mainNameParts.length - 1).mkString("_")
                 val propType      = if (path.contains("static")) "static" else "dynamic"
 
-                // 2. WE ADD THE PROPERTY TYPE IF NOT EXIST
-                if (!elementsDF.contains(propType))
-                    elementsDF += (propType -> mutable.Map.empty)
-                
-                // 4. DATAFRAME READING FROM MINIO
-                val elementDF = spark.read.option("multiline","true").json(path)
-                
-                // 5. IF IT IS THE FIRST DATAFRAME, WE ASSIGN
-                elementsDF(propType)(mapKey) = elementsDF(propType).get(mapKey) match {
-                    case Some(existing) => existing.union(elementDF).dropDuplicates()
-                    case None           => elementDF
-                }
+                pathsByGroup.getOrElseUpdate((propType, mapKey), mutable.ArrayBuffer.empty) += path
             })
         }}
+
+        pathsByGroup.foreach { case ((propType, mapKey), paths) =>
+            if (!elementsDF.contains(propType))
+                elementsDF += (propType -> mutable.Map.empty)
+
+            paths.foreach(path => println("Reading path: " + path))
+
+            // DATAFRAME READING FROM MINIO: read every file for this group, then union and
+            // dedupe once at the end rather than once per file (each dropDuplicates is a full
+            // shuffle, so doing it per-file made the cost grow with the number of files).
+            val elementDF = paths
+                .map(path => spark.read.option("multiline", "true").json(path))
+                .reduce(_.union(_))
+                .dropDuplicates()
+
+            elementsDF(propType)(mapKey) = elementDF
+        }
 
         return elementsDF
     }

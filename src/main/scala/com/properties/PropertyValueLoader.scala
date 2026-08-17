@@ -79,9 +79,21 @@ object PropertyValueLoader {
     val propsDF = spark.table(table)
       .filter(col("property_name").isin(propertyTypes.keys.toSeq: _*))
 
-    val pivotedColumns = propertyTypes.map { case (propName, propType) =>
-      val valueColumn = valueColumnFor(propType)
-      first(when(col("property_name") === propName, col(valueColumn)), ignoreNulls = true).as(propName)
+    // Each requested property gets its declared-type column (propName) plus its array-shaped
+    // counterpart (propName__array), even when the declared type is scalar. A WHERE condition's
+    // declared type comes purely from how the Cypher literal was written (e.g. a quoted string
+    // literal always parses to a scalar StringProp), which doesn't necessarily match how the
+    // property is actually stored -- ICIJ's country fields, for instance, are always arrays
+    // even for a single country. The array column lets WhereClauseSparkTranslator fall back to
+    // per-element evaluation when the declared-type column turns out to be empty. See
+    // arrayValueColumnFor.
+    val pivotedColumns = propertyTypes.flatMap { case (propName, propType) =>
+      val valueColumn        = valueColumnFor(propType)
+      val arrayFallbackColumn = arrayValueColumnFor(propType)
+      Seq(
+        first(when(col("property_name") === propName, col(valueColumn)), ignoreNulls = true).as(propName),
+        first(when(col("property_name") === propName, col(arrayFallbackColumn)), ignoreNulls = true).as(s"${propName}__array")
+      )
     }.toSeq
 
     propsDF.groupBy(col(idColumn)).agg(pivotedColumns.head, pivotedColumns.tail: _*)
@@ -91,6 +103,15 @@ object PropertyValueLoader {
     case PropertyType.StringType       => "string_value"
     case PropertyType.IntegerType      => "numeric_value"
     case PropertyType.DoubleType       => "numeric_value"
+    case PropertyType.StringArrayType  => "string_values"
+    case PropertyType.IntegerArrayType => "numeric_values"
+    case PropertyType.DoubleArrayType  => "numeric_values"
+  }
+
+  private def arrayValueColumnFor(propType: PropertyType): String = propType match {
+    case PropertyType.StringType       => "string_values"
+    case PropertyType.IntegerType      => "numeric_values"
+    case PropertyType.DoubleType       => "numeric_values"
     case PropertyType.StringArrayType  => "string_values"
     case PropertyType.IntegerArrayType => "numeric_values"
     case PropertyType.DoubleArrayType  => "numeric_values"

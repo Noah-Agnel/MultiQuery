@@ -22,6 +22,20 @@ object BitMatrixPopulator {
       )
   }
 
+  /** Recomputes the target bit matrix from node_label_pair and persists it to the
+    * target_bit_matrix Iceberg table, so queries can read it instead of rebuilding it. */
+  def populateTargetBitMatrixTable(spark: SparkSession, dbName: String, config: BitMatrixConfig): Unit = {
+    buildTargetMatrix(spark, dbName, config)
+      .withColumn("created_at", current_timestamp())
+      .write
+      .mode("overwrite")
+      .insertInto(s"$dbName.target_bit_matrix")
+  }
+
+  /** Reads the persisted target bit matrix instead of recomputing it. */
+  def readTargetBitMatrix(spark: SparkSession, dbName: String): DataFrame =
+    spark.table(s"$dbName.target_bit_matrix").select("pair_id", "target_bitmask")
+
   /** Populates Query Bit Matrix DataFrame */
   def buildQueryMatrix(spark: SparkSession, queryStructure: QueryStructure, config: BitMatrixConfig): DataFrame = {
     import spark.implicits._

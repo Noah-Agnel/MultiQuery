@@ -37,6 +37,11 @@ object SparkHandler {
         val spark = SparkSession.builder()
             .appName(appName)
             .master(SPK_MASTER)
+            // NOTE: spark.driver.memory can't be set here -- in local[*] mode the driver IS
+            // this already-running JVM, so its heap is fixed at process launch and Spark
+            // ignores this config. The actual heap size is set via -Xmx in build.sbt's
+            // `Compile / run / javaOptions` (effective because `run / fork := true`).
+            .config("spark.driver.maxResultSize", "2g")
             .config(SPK_SQL_EXT,    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
             .config(SPK_CAT_IMPL,   "org.apache.iceberg.spark.SparkCatalog")
             .config(SPK_CAT_TYPE,   "hadoop")

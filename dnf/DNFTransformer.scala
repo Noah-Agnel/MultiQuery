@@ -73,41 +73,44 @@ class DNFTransformer {
   }
   
   /**
-   * Step 2: Distribute disjunctions over conjunctions
-   * - A ∨ (B ∧ C) becomes (A ∨ B) ∧ (A ∨ C)
-   * This step converts the expression to DNF
+   * Step 2: Distribute conjunctions over disjunctions
+   * - A ∧ (B ∨ C) becomes (A ∧ B) ∨ (A ∧ C)
+   * This step converts the expression to DNF by pulling any OR nested inside an
+   * AND up to the top, growing the top-level disjunction. A Disjunction's own
+   * operands need no such distribution - once each side is itself recursively
+   * converted, it's already a DNF sub-expression (a literal, a conjunction of
+   * literals, or itself a disjunction of those), and DNF is closed under simply
+   * disjoining two DNF expressions together.
   */
   private def distributeOrOverAnd(expr: BooleanExpression): BooleanExpression = expr match {
     case Variable(name)    => Variable(name)
     case Constant(value)   => Constant(value)
     case Negation(operand) => Negation(distributeOrOverAnd(operand))
-    case Conjunction(left, right) => 
-      Conjunction(distributeOrOverAnd(left), distributeOrOverAnd(right))
-    case Disjunction(left, right) => 
-      val leftDist  = distributeOrOverAnd(left)
-      val rightDist = distributeOrOverAnd(right)
-      distributeOr(leftDist, rightDist)
+    case Conjunction(left, right) =>
+      distributeAndOverOr(distributeOrOverAnd(left), distributeOrOverAnd(right))
+    case Disjunction(left, right) =>
+      Disjunction(distributeOrOverAnd(left), distributeOrOverAnd(right))
   }
-  
+
   /**
-   * Helper method to distribute OR over AND
+   * Helper method to distribute AND over OR
    * Handles the core distribution logic for DNF conversion
    */
-  private def distributeOr(left: BooleanExpression, right: BooleanExpression): BooleanExpression = {
+  private def distributeAndOverOr(left: BooleanExpression, right: BooleanExpression): BooleanExpression = {
     (left, right) match {
-      case (Conjunction(a, b), c) => 
-        // (A ∧ B) ∨ C = (A ∨ C) ∧ (B ∨ C)
-        Conjunction(
-          distributeOr(a, c),
-          distributeOr(b, c)
+      case (Disjunction(a, b), c) =>
+        // (A ∨ B) ∧ C = (A ∧ C) ∨ (B ∧ C)
+        Disjunction(
+          distributeAndOverOr(a, c),
+          distributeAndOverOr(b, c)
         )
-      case (a, Conjunction(b, c)) => 
-        // A ∨ (B ∧ C) = (A ∨ B) ∧ (A ∨ C)
-        Conjunction(
-          distributeOr(a, b),
-          distributeOr(a, c)
+      case (a, Disjunction(b, c)) =>
+        // A ∧ (B ∨ C) = (A ∧ B) ∨ (A ∧ C)
+        Disjunction(
+          distributeAndOverOr(a, b),
+          distributeAndOverOr(a, c)
         )
-      case (a, b) => Disjunction(a, b)
+      case (a, b) => Conjunction(a, b)
     }
   }
   
@@ -160,7 +163,10 @@ class DNFTransformer {
   
   /**
    * Checks if an expression is already in DNF
-   * DNF is a disjunction of conjunctions of literals
+   * DNF is a disjunction of conjunctions of literals. A disjunction chain can be
+   * nested in any shape -- left-linear, right-linear, or balanced, depending on
+   * how the parser/transformer built it -- so this recurses into both sides of
+   * every Disjunction rather than assuming one side is always a single clause.
    */
   def isDNF(expr: BooleanExpression): Boolean = {
     def isLiteral(e: BooleanExpression): Boolean = e match {
@@ -169,30 +175,33 @@ class DNFTransformer {
       case Constant(_)           => true
       case _                     => false
     }
-    
+
     def isConjunctionOfLiterals(e: BooleanExpression): Boolean = e match {
       case literal if isLiteral(literal) => true
-      case Conjunction(left, right) => 
+      case Conjunction(left, right) =>
         isConjunctionOfLiterals(left) && isConjunctionOfLiterals(right)
       case _ => false
     }
-    
-    expr match {
-      case literal if isLiteral(literal) => true
-      case conjunction if isConjunctionOfLiterals(conjunction) => true
-      case Disjunction(left, right) => 
-        isConjunctionOfLiterals(left) && isDNF(right)
+
+    def isClauseOrDisjunctionOfClauses(e: BooleanExpression): Boolean = e match {
+      case clause if isConjunctionOfLiterals(clause) => true
+      case Disjunction(left, right) =>
+        isClauseOrDisjunctionOfClauses(left) && isClauseOrDisjunctionOfClauses(right)
       case _ => false
     }
+
+    isClauseOrDisjunctionOfClauses(expr)
   }
-  
+
   /**
    * Converts a DNF expression to a list of clauses (conjunctions)
-   * Each clause is represented as a list of literals
+   * Each clause is represented as a list of literals. Recurses into both sides
+   * of every Disjunction (see isDNF) so any nesting shape is handled, not just
+   * a right-linear chain.
    */
   def dnfToClauses(expr: BooleanExpression): List[List[BooleanExpression]] = {
     require(isDNF(expr), "Expression must be in DNF")
-    
+
     def extractLiterals(conjunction: BooleanExpression): List[BooleanExpression] = {
       conjunction match {
         case Variable(_) | Negation(Variable(_)) | Constant(_) => List(conjunction)
@@ -200,13 +209,10 @@ class DNFTransformer {
         case _ => throw new IllegalArgumentException("Not a valid conjunction of literals")
       }
     }
-    
+
     expr match {
-      case Variable(_) | Negation(Variable(_)) | Constant(_) => List(List(expr))
-      case Conjunction(_, _) => List(extractLiterals(expr))
-      case Negation(inner) => List(extractLiterals(expr))
-      case Disjunction(left, right) => 
-        extractLiterals(left) :: dnfToClauses(right)
+      case Disjunction(left, right) => dnfToClauses(left) ++ dnfToClauses(right)
+      case clause                   => List(extractLiterals(clause))
     }
   }
 }

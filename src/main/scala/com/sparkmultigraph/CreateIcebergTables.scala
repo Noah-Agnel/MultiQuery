@@ -34,6 +34,7 @@ object CreateIcebergTables {
       createEdgeDynamicPropsTable(spark, dbName)
       createMetadataNodeLabelsTable(spark, dbName)
       createMetadataEdgeTypesTable(spark, dbName)
+      createTargetBitMatrixTable(spark, dbName)
 
       // Verify tables were created
       println(s"Successfully created tables in $dbName:")
@@ -216,6 +217,21 @@ object CreateIcebergTables {
           type_id     INT NOT NULL,
           edge_type   STRING
         ) USING ICEBERG
+      """)
+  }
+
+  private def createTargetBitMatrixTable(spark: SparkSession, dbName: String): Unit = {
+    println("Creating target_bit_matrix table...")
+    spark.sql(
+      s"""
+        CREATE TABLE IF NOT EXISTS $dbName.target_bit_matrix (
+          pair_id           BIGINT NOT NULL,
+          target_bitmask    ARRAY<BIGINT>,
+          created_at        TIMESTAMP NOT NULL
+        ) USING ICEBERG
+        PARTITIONED BY (
+          bucket(16, pair_id)
+        )
       """)
   }
 } 

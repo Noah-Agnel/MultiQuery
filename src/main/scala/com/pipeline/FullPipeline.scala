@@ -11,6 +11,20 @@ import org.apache.spark.sql.functions._
 
 object FullPipeline {
 
+  // Stage timings for the current run, in insertion order. Not thread-safe by design:
+  // a single pipeline invocation runs on one thread and `main` resets it up front.
+  private val stageTimings = scala.collection.mutable.ArrayBuffer[(String, Double)]()
+
+  /** Times `block`, prints its elapsed time, and records it for the end-of-run summary. */
+  private def timed[T](label: String)(block: => T): T = {
+    val start     = System.nanoTime()
+    val result    = block
+    val elapsedMs = (System.nanoTime() - start) / 1e6
+    stageTimings += (label -> elapsedMs)
+    println(f"[TIMER] $label%-35s $elapsedMs%10.2f ms")
+    result
+  }
+
   def main(args: Array[String]): Unit = {
     require(args.nonEmpty, "Usage: FullPipeline <cypherQuery> [dbName]")
 
@@ -20,16 +34,29 @@ object FullPipeline {
     val spark = SparkHandler.spConfig("Full Pipeline")
     spark.conf.set("spark.sql.iceberg.check-nullability", "false")
 
+    stageTimings.clear()
+    val overallStart = System.nanoTime()
+
     run(spark, dbName, cypherQuery) match {
       case Right(df) =>
-        println("\n--- MultiJoin Matches Summary ---")
-        df.agg(count("*").as("total_matches"))
-            .show(truncate = false)
-        println(s"=== Solutions for query on $dbName ===")
-        df.show(20, truncate = false)
+        timed("Display results") {
+          println("\n--- MultiJoin Matches Summary ---")
+          df.agg(count("*").as("total_matches"))
+              .show(truncate = false)
+          println(s"=== Solutions for query on $dbName ===")
+          df.show(20, truncate = false)
+        }
       case Left(err) =>
         println(s"=== Pipeline failed ===\n$err")
     }
+
+    val overallElapsedMs = (System.nanoTime() - overallStart) / 1e6
+
+    val width = (stageTimings.map(_._1.length) :+ "TOTAL (wall clock)".length).max
+    println("\n=== Pipeline Timing Summary ===")
+    stageTimings.foreach { case (label, ms) => println(f"${label.padTo(width, ' ')}  $ms%10.2f ms") }
+    println("-" * (width + 15))
+    println(f"${"TOTAL (wall clock)".padTo(width, ' ')}  $overallElapsedMs%10.2f ms")
 
     spark.stop()
   }
@@ -45,7 +72,7 @@ object FullPipeline {
    */
   def run(spark: SparkSession, dbName: String, cypherQuery: String): Either[String, DataFrame] = {
     for {
-      queryStructure <- CypherQueryWrapper.convert(cypherQuery)
+      queryStructure <- timed("Cypher parsing")(CypherQueryWrapper.convert(cypherQuery))
       solutions      <- computeSolutions(spark, dbName, queryStructure)
     } yield solutions
   }
@@ -58,11 +85,19 @@ object FullPipeline {
     val edges = queryStructure.getEdges.values.toSeq
     if (edges.isEmpty) return Left("Query must contain at least one edge")
 
-    var compatibilityDomainDF = CompatibilityDomainEngine.computeCompatibilityDomain(spark, dbName, queryStructure)
+    var compatibilityDomainDF = timed("Compatibility domain computation") {
+      val df = CompatibilityDomainEngine.computeCompatibilityDomain(spark, dbName, queryStructure).cache()
+      df.count() // force materialization so this stage's time isn't attributed to a later stage
+      df
+    }
 
     queryStructure.getWhereClause match {
       case None =>
-        Right(MultiJoinMatching.computeMatches(compatibilityDomainDF, edges))
+        Right(timed("MultiJoin matching") {
+          val df = MultiJoinMatching.computeMatches(compatibilityDomainDF, edges).cache()
+          df.count()
+          df
+        })
 
       case Some(whereClause) =>
         val nodeVariables       = queryStructure.getNodes.keySet
@@ -80,17 +115,25 @@ object FullPipeline {
 
         // --- PRE-JOIN: shrink candidate domains using conditions required by every OR-branch ---
         val plan = WherePredicatePlanner.classify(whereClause)
-        plan.hoistable.foreach { case (variable, conditions) =>
-          val propertyTypes = conditions.map(lc => lc.prop.name -> Property.typeOf(lc.prop)).toMap
-          val propsDF       = PropertyValueLoader.loadNodeProperties(spark, dbName, propertyTypes)
-          val allowedIds     = propsDF
-            .filter(WhereClauseSparkTranslator.hoistableFilterColumn(conditions))
-            .select(col("node_id").as("id"))
+        compatibilityDomainDF = timed("Pre-join hoistable filtering") {
+          plan.hoistable.foreach { case (variable, conditions) =>
+            val propertyTypes = conditions.map(lc => lc.prop.name -> Property.typeOf(lc.prop)).toMap
+            val propsDF       = PropertyValueLoader.loadNodeProperties(spark, dbName, propertyTypes)
+            val allowedIds     = propsDF
+              .filter(WhereClauseSparkTranslator.hoistableFilterColumn(conditions))
+              .select(col("node_id").as("id"))
 
-          compatibilityDomainDF = restrictVariableDomain(compatibilityDomainDF, variable, allowedIds)
+            compatibilityDomainDF = restrictVariableDomain(compatibilityDomainDF, variable, allowedIds).cache()
+          }
+          compatibilityDomainDF.count()
+          compatibilityDomainDF
         }
 
-        val matchesDF = MultiJoinMatching.computeMatches(compatibilityDomainDF, edges)
+        val matchesDF = timed("MultiJoin matching") {
+          val df = MultiJoinMatching.computeMatches(compatibilityDomainDF, edges).cache()
+          df.count()
+          df
+        }
 
         // --- POST-JOIN: evaluate the whole WHERE expression against every matched row ---
         val literalNeedsByVariable: Map[String, Map[String, PropertyType]] =
@@ -104,31 +147,49 @@ object FullPipeline {
             .groupBy(_._1)
             .map { case (variable, entries) => variable -> entries.map(_._2).toSet }
 
-        val withLiteralProps = literalNeedsByVariable.foldLeft(matchesDF) { case (df, (variable, propertyTypes)) =>
-          val propsDF = PropertyValueLoader.loadNodeProperties(spark, dbName, propertyTypes)
-          val renames = propertyTypes.keySet.map(p => p -> s"${variable}__$p").toMap
-          joinVariableProperties(df, variable, propsDF, renames)
+        val withLiteralProps = timed("Literal property join") {
+          val df = literalNeedsByVariable.foldLeft(matchesDF) { case (df, (variable, propertyTypes)) =>
+            val propsDF = PropertyValueLoader.loadNodeProperties(spark, dbName, propertyTypes)
+            val renames = propertyTypes.keySet.flatMap(p => Seq(
+              p              -> s"${variable}__$p",
+              s"${p}__array" -> s"${variable}__${p}__array"
+            )).toMap
+            joinVariableProperties(df, variable, propsDF, renames)
+          }.cache()
+          df.count()
+          df
         }
 
-        val joined = variableNeedsByVariable.foldLeft(withLiteralProps) { case (df, (variable, propertyNames)) =>
-          val propsDF = PropertyValueLoader.loadNodePropertiesUntyped(spark, dbName, propertyNames)
-          val renames = propertyNames.flatMap(p => Seq(
-            s"${p}__string"  -> s"${variable}__${p}__string",
-            s"${p}__numeric" -> s"${variable}__${p}__numeric"
-          )).toMap
-          joinVariableProperties(df, variable, propsDF, renames)
+        val joined = timed("Variable property join") {
+          val df = variableNeedsByVariable.foldLeft(withLiteralProps) { case (df, (variable, propertyNames)) =>
+            val propsDF = PropertyValueLoader.loadNodePropertiesUntyped(spark, dbName, propertyNames)
+            val renames = propertyNames.flatMap(p => Seq(
+              s"${p}__string"  -> s"${variable}__${p}__string",
+              s"${p}__numeric" -> s"${variable}__${p}__numeric"
+            )).toMap
+            joinVariableProperties(df, variable, propsDF, renames)
+          }.cache()
+          df.count()
+          df
         }
 
-        val literalColumnFor : (String, String) => Column = (variable, prop) => col(s"${variable}__$prop")
+        val literalColumnFor : (String, String) => (Column, Column) =
+          (variable, prop) => (col(s"${variable}__$prop"), col(s"${variable}__${prop}__array"))
         val variableColumnFor: (String, String) => (Column, Column) =
           (variable, prop) => (col(s"${variable}__${prop}__string"), col(s"${variable}__${prop}__numeric"))
 
-        val filtered = WhereClauseSparkTranslator.deferredFilterColumn(whereClause, literalColumnFor, variableColumnFor) match {
-          case Some(filterColumn) => joined.filter(filterColumn)
-          case None               => joined
+        val filtered = timed("WHERE clause filtering") {
+          val df = (WhereClauseSparkTranslator.deferredFilterColumn(whereClause, literalColumnFor, variableColumnFor) match {
+            case Some(filterColumn) => joined.filter(filterColumn)
+            case None               => joined
+          }).cache()
+          df.count()
+          df
         }
 
-        Right(filtered.select(nodeVariables.toSeq.map(col): _*))
+        Right(timed("Final projection") {
+          filtered.select(nodeVariables.toSeq.map(col): _*)
+        })
     }
   }
 
