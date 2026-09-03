@@ -108,9 +108,6 @@ object ReaderWriterHandler {
 
             paths.foreach(path => println("Reading path: " + path))
 
-            // DATAFRAME READING FROM MINIO: read every file for this group, then union and
-            // dedupe once at the end rather than once per file (each dropDuplicates is a full
-            // shuffle, so doing it per-file made the cost grow with the number of files).
             val elementDF = paths
                 .map(path => spark.read.option("multiline", "true").json(path))
                 .reduce(_.union(_))

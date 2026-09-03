@@ -17,30 +17,6 @@ object DropIcebergTables {
     val spark  = spConfig("Drop Iceberg Tables")
 
     try {
-      // Check if database exists
-      /*
-      val databases = spark.sql("SHOW DATABASES").collect()
-      val dbExists  = databases.exists(_.getString(0) == dbName)
-      
-      if (!dbExists) {
-        println(s"Database $dbName does not exist!")
-        return
-      }
-      
-      
-      spark.sql(s"USE $dbName")
-      
-      // List all tables in the database
-      val tables = spark.sql(s"SHOW TABLES IN $dbName").collect()
-      
-      if (tables.isEmpty) {
-        println(s"No tables found in database $dbName")
-        return
-      }
-      
-      println(s"Found ${tables.length} tables in $dbName:")
-      tables.foreach(row => println(s"  - ${row.getString(1)}"))
-      */
       // Drop each table
       val tableNames = Array(
         "node_label_pair",

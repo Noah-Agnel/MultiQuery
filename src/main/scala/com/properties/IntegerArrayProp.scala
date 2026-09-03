@@ -38,17 +38,9 @@ case class IntegerArrayProp(
     operator match {
       case Operator.IsNull        => actualValue == null
       case Operator.IsNotNull     => actualValue != null
-
-      // A null property value makes every other comparison unknown/not-a-match
-      // (matches SQL/Cypher three-valued NULL semantics), rather than NPE-ing.
       case _ if arrayValue == null => false
-
       case Operator.Equal         => arrayValue.sameElements(value)
       case Operator.NotEqual      => !arrayValue.sameElements(value)
-
-      // nonEmpty-guarded: arrayValue.forall(...) is vacuously true on an empty array (e.g. a
-      // node with no recorded value for this property), which would otherwise make In match
-      // -- and NotIn not match -- every such node regardless of what's being searched for.
       case Operator.In            => arrayValue.nonEmpty && arrayValue.forall(elem => value.contains(elem))
       case Operator.NotIn         => arrayValue.nonEmpty && !arrayValue.forall(elem => value.contains(elem))
       case Operator.SomeIn        => arrayValue.exists(elem => value.contains(elem))

@@ -20,14 +20,16 @@ object PropertyValueLoader {
   def loadNodeProperties(
       spark        : SparkSession,
       dbName       : String,
-      propertyTypes: Map[String, PropertyType]
-  ): DataFrame = load(spark, s"$dbName.node_static_props", "node_id", propertyTypes)
+      propertyTypes: Map[String, PropertyType],
+      candidateIds : Option[DataFrame] = None
+  ): DataFrame = load(spark, s"$dbName.node_static_props", "node_id", propertyTypes, candidateIds)
 
   def loadEdgeProperties(
       spark        : SparkSession,
       dbName       : String,
-      propertyTypes: Map[String, PropertyType]
-  ): DataFrame = load(spark, s"$dbName.edge_static_props", "edge_id", propertyTypes)
+      propertyTypes: Map[String, PropertyType],
+      candidateIds : Option[DataFrame] = None
+  ): DataFrame = load(spark, s"$dbName.edge_static_props", "edge_id", propertyTypes, candidateIds)
 
   /**
    * Loads properties whose type isn't known statically (e.g. cross-variable conditions,
@@ -38,65 +40,93 @@ object PropertyValueLoader {
   def loadNodePropertiesUntyped(
       spark        : SparkSession,
       dbName       : String,
-      propertyNames: Set[String]
-  ): DataFrame = loadUntyped(spark, s"$dbName.node_static_props", "node_id", propertyNames)
+      propertyNames: Set[String],
+      candidateIds : Option[DataFrame] = None
+  ): DataFrame = loadUntyped(spark, s"$dbName.node_static_props", "node_id", propertyNames, candidateIds)
 
   def loadEdgePropertiesUntyped(
       spark        : SparkSession,
       dbName       : String,
-      propertyNames: Set[String]
-  ): DataFrame = loadUntyped(spark, s"$dbName.edge_static_props", "edge_id", propertyNames)
+      propertyNames: Set[String],
+      candidateIds : Option[DataFrame] = None
+  ): DataFrame = loadUntyped(spark, s"$dbName.edge_static_props", "edge_id", propertyNames, candidateIds)
+
+  /**
+   * Restricts `propsDF` to rows whose id is in `candidateIds`, via a broadcast join, before
+   * any grouping/pivoting happens. When the caller already knows which ids it cares about
+   * (e.g. the small set of node ids bound by a multijoin), this turns an aggregation over the
+   * whole property table into one over just the relevant rows, and lets the later join onto
+   * those ids be a broadcast join instead of a shuffle.
+   */
+  private def restrictToCandidates(propsDF: DataFrame, idColumn: String, candidateIds: Option[DataFrame]): DataFrame =
+    candidateIds match {
+      case Some(ids) => propsDF.join(broadcast(ids.withColumnRenamed("id", idColumn)), Seq(idColumn))
+      case None       => propsDF
+    }
 
   private def loadUntyped(
       spark        : SparkSession,
       table        : String,
       idColumn     : String,
-      propertyNames: Set[String]
+      propertyNames: Set[String],
+      candidateIds : Option[DataFrame]
   ): DataFrame = {
     require(propertyNames.nonEmpty, "Must request at least one property")
 
-    val propsDF = spark.table(table)
-      .filter(col("property_name").isin(propertyNames.toSeq: _*))
+    val propsDF = restrictToCandidates(
+      spark.table(table).filter(col("property_name").isin(propertyNames.toSeq: _*)),
+      idColumn, candidateIds
+    )
 
-    val pivotedColumns = propertyNames.toSeq.flatMap { propName =>
-      Seq(
-        first(when(col("property_name") === propName, col("string_value")), ignoreNulls = true).as(s"${propName}__string"),
-        first(when(col("property_name") === propName, col("numeric_value")), ignoreNulls = true).as(s"${propName}__numeric")
+    if (propertyNames.size == 1) {
+      val propName = propertyNames.head
+      propsDF.select(
+        col(idColumn),
+        col("string_value").as(s"${propName}__string"),
+        col("numeric_value").as(s"${propName}__numeric")
       )
+    } else {
+      val pivotedColumns = propertyNames.toSeq.flatMap { propName =>
+        Seq(
+          first(when(col("property_name") === propName, col("string_value")), ignoreNulls = true).as(s"${propName}__string"),
+          first(when(col("property_name") === propName, col("numeric_value")), ignoreNulls = true).as(s"${propName}__numeric")
+        )
+      }
+      propsDF.groupBy(col(idColumn)).agg(pivotedColumns.head, pivotedColumns.tail: _*)
     }
-
-    propsDF.groupBy(col(idColumn)).agg(pivotedColumns.head, pivotedColumns.tail: _*)
   }
 
   private def load(
       spark        : SparkSession,
       table        : String,
       idColumn     : String,
-      propertyTypes: Map[String, PropertyType]
+      propertyTypes: Map[String, PropertyType],
+      candidateIds : Option[DataFrame]
   ): DataFrame = {
     require(propertyTypes.nonEmpty, "Must request at least one property")
 
-    val propsDF = spark.table(table)
-      .filter(col("property_name").isin(propertyTypes.keys.toSeq: _*))
-
-    // Each requested property gets its declared-type column (propName) plus its array-shaped
-    // counterpart (propName__array), even when the declared type is scalar. A WHERE condition's
-    // declared type comes purely from how the Cypher literal was written (e.g. a quoted string
-    // literal always parses to a scalar StringProp), which doesn't necessarily match how the
-    // property is actually stored -- ICIJ's country fields, for instance, are always arrays
-    // even for a single country. The array column lets WhereClauseSparkTranslator fall back to
-    // per-element evaluation when the declared-type column turns out to be empty. See
-    // arrayValueColumnFor.
-    val pivotedColumns = propertyTypes.flatMap { case (propName, propType) =>
-      val valueColumn        = valueColumnFor(propType)
-      val arrayFallbackColumn = arrayValueColumnFor(propType)
-      Seq(
-        first(when(col("property_name") === propName, col(valueColumn)), ignoreNulls = true).as(propName),
-        first(when(col("property_name") === propName, col(arrayFallbackColumn)), ignoreNulls = true).as(s"${propName}__array")
+    val propsDF = restrictToCandidates(
+      spark.table(table).filter(col("property_name").isin(propertyTypes.keys.toSeq: _*)),
+      idColumn, candidateIds
+    )
+    if (propertyTypes.size == 1) {
+      val (propName, propType) = propertyTypes.head
+      propsDF.select(
+        col(idColumn),
+        col(valueColumnFor(propType)).as(propName),
+        col(arrayValueColumnFor(propType)).as(s"${propName}__array")
       )
-    }.toSeq
-
-    propsDF.groupBy(col(idColumn)).agg(pivotedColumns.head, pivotedColumns.tail: _*)
+    } else {
+      val pivotedColumns = propertyTypes.flatMap { case (propName, propType) =>
+        val valueColumn        = valueColumnFor(propType)
+        val arrayFallbackColumn = arrayValueColumnFor(propType)
+        Seq(
+          first(when(col("property_name") === propName, col(valueColumn)), ignoreNulls = true).as(propName),
+          first(when(col("property_name") === propName, col(arrayFallbackColumn)), ignoreNulls = true).as(s"${propName}__array")
+        )
+      }.toSeq
+      propsDF.groupBy(col(idColumn)).agg(pivotedColumns.head, pivotedColumns.tail: _*)
+    }
   }
 
   private def valueColumnFor(propType: PropertyType): String = propType match {

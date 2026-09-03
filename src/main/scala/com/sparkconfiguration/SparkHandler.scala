@@ -6,9 +6,10 @@ object SparkHandler {
     // ========================================================================================================================
     // CONSTANTS
     // ========================================================================================================================
-    // Local warehouse path for the Iceberg Hadoop catalog. Adjust to wherever
-    // you want table data actually written on disk.
+    // Local warehouse path for the Iceberg Hadoop catalog.
     val LOCAL_WAREHOUSE: String = "file:///Users/noah/Desktop/MultiQuery/spark-warehouse"
+
+    val EVENT_LOG_DIR: String = "file:///Users/noah/Desktop/MultiQuery/spark-event-logs"
 
     val SPK_MASTER      :String  = "local[*]"
     val ICEBERG_CATALOG :String  = "local"
@@ -20,8 +21,6 @@ object SparkHandler {
     val SPK_CAT_WHOUSE  :String  = s"spark.sql.catalog.$ICEBERG_CATALOG.warehouse"
 
     // S3A filesystem config, used to read the raw node/edge JSON files from MinIO.
-    // sbt run executes on the host, outside the docker network, so the endpoint
-    // must be localhost rather than the "minio" service hostname.
     val SPK_HD_EDP  :String  = "spark.hadoop.fs.s3a.endpoint"
     val SPK_HD_ACK  :String  = "spark.hadoop.fs.s3a.access.key"
     val SPK_HD_SKY  :String  = "spark.hadoop.fs.s3a.secret.key"
@@ -37,11 +36,9 @@ object SparkHandler {
         val spark = SparkSession.builder()
             .appName(appName)
             .master(SPK_MASTER)
-            // NOTE: spark.driver.memory can't be set here -- in local[*] mode the driver IS
-            // this already-running JVM, so its heap is fixed at process launch and Spark
-            // ignores this config. The actual heap size is set via -Xmx in build.sbt's
-            // `Compile / run / javaOptions` (effective because `run / fork := true`).
             .config("spark.driver.maxResultSize", "2g")
+            .config("spark.eventLog.enabled", "true")
+            .config("spark.eventLog.dir",     EVENT_LOG_DIR)
             .config(SPK_SQL_EXT,    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
             .config(SPK_CAT_IMPL,   "org.apache.iceberg.spark.SparkCatalog")
             .config(SPK_CAT_TYPE,   "hadoop")
@@ -54,9 +51,6 @@ object SparkHandler {
             .config(SPK_HD_IMP,     "org.apache.hadoop.fs.s3a.S3AFileSystem")
             .config(SPK_HD_SSL,     "false")
             .getOrCreate()
-
-        // Suppress noisy Spark log output globally
-        spark.sparkContext.setLogLevel("ERROR")
 
         return spark
     }

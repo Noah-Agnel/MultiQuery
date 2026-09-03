@@ -48,8 +48,7 @@ def split_multivalue(raw: str) -> list[str]:
 # ============================================================
 # NODE MODELS
 # ============================================================
-# Unlike Enron's Person (deduplicated by email, assigned a fresh
-# sequential id), Panama Papers node types reuse ICIJ's own node_id
+# Panama Papers node types reuse ICIJ's own node_id
 # directly: it is already globally unique across Entities, Officers,
 # Intermediaries, and Addresses, and all_edges.csv references these
 # exact ids. Reassigning ids would require a translation table for
@@ -165,10 +164,6 @@ class Address:
 class NodesManaging:
     """
     Tracks Entity, Officer, Intermediary, and Address nodes.
-
-    Unlike Enron's NodesManaging, no id-assignment or dedup-by-content
-    registry is needed: ICIJ node_ids are already unique per row, and
-    each CSV is read exactly once per pipeline run.
     """
     def __init__(self):
         self.nodes: dict[str, list] = {
@@ -212,12 +207,6 @@ class EdgesManaging:
     """
     Tracks edges from all_edges.csv: node_1 -[rel_type]-> node_2,
     optionally carrying a start_date/end_date pair as dynamic props.
-
-    Unlike Enron edges (one row per message reaching one recipient,
-    deduplicated by src+dst+type+timestamp), all_edges.csv rows have
-    no natural per-row uniqueness beyond the row content itself, so
-    the same hash-based dedup strategy is reused, extended to include
-    start_date/end_date in the hash payload.
     """
     def __init__(self):
         self.edges: list[dict] = []

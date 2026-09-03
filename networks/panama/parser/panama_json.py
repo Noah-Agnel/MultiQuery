@@ -129,9 +129,7 @@ def dynamic_nodes_json_creation(nodes: dict) -> dict:
 # }
 #
 # Every edge gets a static record regardless of whether it also has a
-# dynamic one — edge_type/provenance is known even when the validity
-# window isn't. "source_dataset" guarantees static_props is never
-# empty (an empty struct would break fieldMappingCreation's reduce).
+# dynamic one 
 
 def _static_edge_to_dict(edge: dict) -> dict:
     return {
@@ -166,9 +164,7 @@ def static_edges_json_creation(edges: list) -> list:
 # }
 #
 # Only emitted for edges where at least one of start_date/end_date is
-# actually populated — per the sample rows, most all_edges.csv rows
-# won't have either, so expect this file to be much smaller than the
-# static one.
+# actually populated
 
 def _dynamic_edge_to_dict(edge: dict) -> dict | None:
     frm = edge.get("start_date")
@@ -200,11 +196,6 @@ def node_filename(node_type: str, kind: str, output_path: str, batch_num: int) -
     Returns the output path for a node JSON file.
     kind is "static" or "dynamic".
     e.g. path_1_entity_nodes_static_props_0.json / path_1_entity_nodes_dynamic_props_0.json
-
-    NOTE: the "nodes" segment is required, not cosmetic — ReaderWriterHandler.
-    pathsReadingFromMinio routes files into "nodes" vs "edges" buckets via
-    `filePathStr.contains("node")`. Without it, node files get misrouted as
-    edges and nodesDF ends up empty.
     """
     return os.path.join(output_path, f"path_1_{node_type}_nodes_{kind}_props_{batch_num}.json")
 
