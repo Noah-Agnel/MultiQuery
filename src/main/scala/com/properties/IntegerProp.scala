@@ -15,9 +15,6 @@ case class IntegerProp(
    * Evaluates this integer property against a given value
    */
   override def evaluate(actualValue: Any): Boolean = {
-    // Int can't hold null itself, so a null property value is handled up front
-    // (matches SQL/Cypher three-valued NULL semantics: every comparison except
-    // IS [NOT] NULL is unknown/not-a-match) rather than crashing during conversion.
     if (actualValue == null) {
       return operator match {
         case Operator.IsNull    => true

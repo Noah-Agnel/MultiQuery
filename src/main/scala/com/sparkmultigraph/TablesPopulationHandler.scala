@@ -197,10 +197,6 @@ object TablesPopulationHandler {
             else                            arr.groupBy(identity).mapValues(_.size)
         })
 
-        // Direction is now preserved at the row level: MILB/MALB are the true
-        // src/dst labels for this pair_id, and EOLS holds the src->dst edge
-        // types. The reverse direction (if it exists) is its own row with
-        // MILB/MALB swapped, so edge_2_1_types is no longer populated here.
         val node_label_pair = nodesEdgesMatrix
             .select(PAID, MILB, MALB, EOLS, CRAT)
             .dropDuplicates()

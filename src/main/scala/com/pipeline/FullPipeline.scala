@@ -11,18 +11,21 @@ import org.apache.spark.sql.functions._
 
 object FullPipeline {
 
-  // Stage timings for the current run, in insertion order. Not thread-safe by design:
-  // a single pipeline invocation runs on one thread and `main` resets it up front.
-  private val stageTimings = scala.collection.mutable.ArrayBuffer[(String, Double)]()
+  /** Accumulates stage timings for a single pipeline invocation. Not shared across runs. */
+  private class Timings {
+    private val buffer = scala.collection.mutable.ArrayBuffer[(String, Double)]()
 
-  /** Times `block`, prints its elapsed time, and records it for the end-of-run summary. */
-  private def timed[T](label: String)(block: => T): T = {
-    val start     = System.nanoTime()
-    val result    = block
-    val elapsedMs = (System.nanoTime() - start) / 1e6
-    stageTimings += (label -> elapsedMs)
-    println(f"[TIMER] $label%-35s $elapsedMs%10.2f ms")
-    result
+    /** Times `block`, prints its elapsed time, and records it for the end-of-run summary. */
+    def apply[T](label: String)(block: => T): T = {
+      val start     = System.nanoTime()
+      val result    = block
+      val elapsedMs = (System.nanoTime() - start) / 1e6
+      buffer += (label -> elapsedMs)
+      //println(f"[TIMER] $label%-35s $elapsedMs%10.2f ms")
+      result
+    }
+
+    def toSeq: Seq[(String, Double)] = buffer.toSeq
   }
 
   def main(args: Array[String]): Unit = {
@@ -34,15 +37,18 @@ object FullPipeline {
     val spark = SparkHandler.spConfig("Full Pipeline")
     spark.conf.set("spark.sql.iceberg.check-nullability", "false")
 
-    stageTimings.clear()
     val overallStart = System.nanoTime()
+    val display = new Timings
 
-    run(spark, dbName, cypherQuery) match {
-      case Right(df) =>
-        timed("Display results") {
+    val (result, pipelineTimings) = runWithTimings(spark, dbName, cypherQuery)
+
+    val overallElapsedMs = (System.nanoTime() - overallStart) / 1e6
+
+    result match {
+      case Right((df, matchCount)) =>
+        display("Display results") {
           println("\n--- MultiJoin Matches Summary ---")
-          df.agg(count("*").as("total_matches"))
-              .show(truncate = false)
+          println(s"total_matches: $matchCount")
           println(s"=== Solutions for query on $dbName ===")
           df.show(20, truncate = false)
         }
@@ -50,11 +56,11 @@ object FullPipeline {
         println(s"=== Pipeline failed ===\n$err")
     }
 
-    val overallElapsedMs = (System.nanoTime() - overallStart) / 1e6
+    val allTimings        = pipelineTimings ++ display.toSeq
 
-    val width = (stageTimings.map(_._1.length) :+ "TOTAL (wall clock)".length).max
+    val width = (allTimings.map(_._1.length) :+ "TOTAL (wall clock)".length).max
     println("\n=== Pipeline Timing Summary ===")
-    stageTimings.foreach { case (label, ms) => println(f"${label.padTo(width, ' ')}  $ms%10.2f ms") }
+    allTimings.foreach { case (label, ms) => println(f"${label.padTo(width, ' ')}  $ms%10.2f ms") }
     println("-" * (width + 15))
     println(f"${"TOTAL (wall clock)".padTo(width, ' ')}  $overallElapsedMs%10.2f ms")
 
@@ -70,17 +76,34 @@ object FullPipeline {
    * TODO: this currently returns the raw multijoin solutions (query node -> target node id).
    * It still needs to be projected down to whatever the query's RETURN clause actually asks for.
    */
-  def run(spark: SparkSession, dbName: String, cypherQuery: String): Either[String, DataFrame] = {
-    for {
-      queryStructure <- timed("Cypher parsing")(CypherQueryWrapper.convert(cypherQuery))
-      solutions      <- computeSolutions(spark, dbName, queryStructure)
-    } yield solutions
+  def run(spark: SparkSession, dbName: String, cypherQuery: String): Either[String, DataFrame] =
+    runWithTimings(spark, dbName, cypherQuery)._1.map(_._1)
+
+  /**
+   * Same as `run`, but also returns this invocation's own stage timings (not shared across
+   * calls) and the final match count. The count is computed here, under its own "Final
+   * materialization" timer, so callers never need their own untimed `.count()`/`.collect()`
+   * to materialize the result - every bit of work is attributed to a named stage.
+   */
+  def runWithTimings(spark: SparkSession, dbName: String, cypherQuery: String): (Either[String, (DataFrame, Long)], Seq[(String, Double)]) = {
+    val timed = new Timings
+    val result = for {
+      queryStructure    <- timed("Cypher parsing")(CypherQueryWrapper.convert(cypherQuery))
+      solutions         <- computeSolutions(spark, dbName, queryStructure, timed)
+      materialized      <- timed("Final materialization") {
+        val cached = solutions.cache()
+        val count  = cached.count()
+        Right((cached, count)): Either[String, (DataFrame, Long)]
+      }
+    } yield materialized
+    (result, timed.toSeq)
   }
 
   private def computeSolutions(
       spark: SparkSession,
       dbName: String,
-      queryStructure: QueryStructure
+      queryStructure: QueryStructure,
+      timed: Timings
   ): Either[String, DataFrame] = {
     val edges = queryStructure.getEdges.values.toSeq
     if (edges.isEmpty) return Left("Query must contain at least one edge")
@@ -148,8 +171,12 @@ object FullPipeline {
             .map { case (variable, entries) => variable -> entries.map(_._2).toSet }
 
         val withLiteralProps = timed("Literal property join") {
+          // Candidate ids are looked up from matchesDF (already cached) rather than the
+          // fold's own accumulator: the accumulator is uncached until the fold finishes, so
+          // reading a variable's ids from it would force Spark to recompute every earlier
+          // iteration's join from scratch just to answer "what ids does this variable have".
           val df = literalNeedsByVariable.foldLeft(matchesDF) { case (df, (variable, propertyTypes)) =>
-            val propsDF = PropertyValueLoader.loadNodeProperties(spark, dbName, propertyTypes)
+            val propsDF = PropertyValueLoader.loadNodeProperties(spark, dbName, propertyTypes, Some(candidateIds(matchesDF, variable)))
             val renames = propertyTypes.keySet.flatMap(p => Seq(
               p              -> s"${variable}__$p",
               s"${p}__array" -> s"${variable}__${p}__array"
@@ -161,8 +188,10 @@ object FullPipeline {
         }
 
         val joined = timed("Variable property join") {
+          // Same reasoning as above: read candidate ids from withLiteralProps (cached), not
+          // the fold's own accumulator.
           val df = variableNeedsByVariable.foldLeft(withLiteralProps) { case (df, (variable, propertyNames)) =>
-            val propsDF = PropertyValueLoader.loadNodePropertiesUntyped(spark, dbName, propertyNames)
+            val propsDF = PropertyValueLoader.loadNodePropertiesUntyped(spark, dbName, propertyNames, Some(candidateIds(withLiteralProps, variable)))
             val renames = propertyNames.flatMap(p => Seq(
               s"${p}__string"  -> s"${variable}__${p}__string",
               s"${p}__numeric" -> s"${variable}__${p}__numeric"
@@ -179,9 +208,10 @@ object FullPipeline {
           (variable, prop) => (col(s"${variable}__${prop}__string"), col(s"${variable}__${prop}__numeric"))
 
         val filtered = timed("WHERE clause filtering") {
-          val df = (WhereClauseSparkTranslator.deferredFilterColumn(whereClause, literalColumnFor, variableColumnFor) match {
-            case Some(filterColumn) => joined.filter(filterColumn)
-            case None               => joined
+          val filterColumn = WhereClauseSparkTranslator.deferredFilterColumn(whereClause, literalColumnFor, variableColumnFor)
+          val df = (filterColumn match {
+            case Some(fc) => joined.filter(fc)
+            case None     => joined
           }).cache()
           df.count()
           df
@@ -223,6 +253,12 @@ object FullPipeline {
       renames  : Map[String, String]
   ): DataFrame = {
     val renamed = renames.foldLeft(propsDF) { case (df, (from, to)) => df.withColumnRenamed(from, to) }
-    baseDF.join(renamed, baseDF(variable) === renamed("node_id"), "left").drop("node_id")
+    // propsDF was already restricted to baseDF's candidate ids for `variable` (see call sites),
+    // so it's small enough to broadcast rather than shuffle-join.
+    baseDF.join(broadcast(renamed), baseDF(variable) === renamed("node_id"), "left").drop("node_id")
   }
+
+  /** The distinct ids `variable` is actually bound to in `df`, for restricting property loads/joins. */
+  private def candidateIds(df: DataFrame, variable: String): DataFrame =
+    df.select(col(variable).as("id")).distinct()
 }

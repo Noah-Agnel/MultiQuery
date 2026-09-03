@@ -15,9 +15,6 @@ case class DoubleProp(
    * Evaluates this double property against a given value
    */
   override def evaluate(actualValue: Any): Boolean = {
-    // Double can't hold null itself, so a null property value is handled up front
-    // (matches SQL/Cypher three-valued NULL semantics: every comparison except
-    // IS [NOT] NULL is unknown/not-a-match) rather than crashing during conversion.
     if (actualValue == null) {
       return operator match {
         case Operator.IsNull    => true
